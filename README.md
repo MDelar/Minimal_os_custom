@@ -16,7 +16,7 @@
 
 *Type to do things. One hub for everything. Zero visual noise.*
 
-[Download Latest APK (v1.9.2)](https://github.com/zaryif/Minimal_os/releases/latest) • [Features](#core-features) • [Inspiration & Vision](#what-inspired-it) • [What It Solves](#what-problem-is-it-solving) • [Installation](#installation--setup)
+[Download Latest APK (v1.9.3)](https://github.com/zaryif/Minimal_os/releases/latest) • [Features](#core-features) • [Inspiration & Vision](#what-inspired-it) • [What It Solves](#what-problem-is-it-solving) • [Installation](#installation--setup)
 
 </div>
 

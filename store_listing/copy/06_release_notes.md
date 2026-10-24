@@ -1,4 +1,4 @@
-# Minimal OS Release Notes - v1.9.2 (Build 23)
+# Minimal OS Release Notes - v1.9.3 (Build 24)
 
 ## Google Play Console Release Notes (en-US)
 
@@ -6,43 +6,34 @@ Paste this exact snippet into the Release Notes field in Google Play Console (en
 
 ```text
 <en-US>
-Minimal OS v1.9.2:
-- Intelligent Contact Resolution: Added greedy multi-word contact matching and relevance scoring for SMS (@), WhatsApp (wa), and phone calls (#).
-- Primary Number Preference: Prioritizes mobile and primary default numbers for messaging contacts.
-- Streamlined Notification Hub: Removed redundant Apps section to focus strictly on high-signal tabs (ALL, MESSAGE, CALLS, EMAIL).
-- Onboarding Default Launcher: One-tap default home and notification permission setup directly during initial walkthrough.
+Minimal OS v1.9.3:
+- Live Alarm Widget Sync: Fixed alarm widget false-positive active states; now dynamically queries real system alarms and displays clear standby state when no alarm is set.
+- Clock App Integration: Quick one-tap access to device clock app and active alarm management directly from the widget deck.
+- Settings System Widgets Visibility: Replaced overflowing single-row chips with flexible wrapping FlowRows so unadded or deleted system widgets never disappear off-screen.
+- Robust Settings Search: Added bidirectional category filtering to seamlessly match queries like "widgets", "shortcuts", and "themes".
+- Automatic System Widget Layout Registration: Adding hosted Android widgets automatically registers them into Home and Deck layouts.
 - 100% offline, zero-telemetry architecture with zero ads and zero data tracking.
 </en-US>
 ```
 
 ---
 
-## Detailed GitHub Release Notes (v1.9.2)
+## Detailed GitHub Release Notes (v1.9.3)
 
-### What's New in v1.9.2
+### What's New in v1.9.3
 
-#### 1. Intelligent Contact Matching & Messaging Engine
-- **Greedy Multi-Word Token Matching**: The terminal command bar now greedily parses multi-word recipient names from longest candidate down to single words. Typing `@John Doe on my way` now correctly targets "John Doe" instead of splitting on the first space and texting "John Adams".
-- **Dynamic Relevance Scoring Engine**: Replaced raw alphabetical sorting with a 1,000-point relevance scoring hierarchy:
-  - Exact full name match: +1000 points
-  - Prefix name match: +600 points
-  - Word-level name match: +400 points
-  - Suffix / phone number match: +450 to +800 points
-  - Primary default number bonus: +60 points
-  - Mobile number bonus: +30 points
-- **Deterministic Disambiguation**: Typing `@Mom` now reliably matches "Mom" rather than picking "Grandma Mom" just because it was alphabetically earlier.
-- **Unified Engine**: Applied across SMS (`@`), WhatsApp (`wa`), and direct calls (`#`).
+#### 1. Live System Alarm Sync & Widget Overhaul
+- **Resolved False-Positive Presetting**: Fixed the alarm widget card defaulting to "7:00 AM" and "Rings Tomorrow" when no alarm was active.
+- **Real-Time System Querying**: The alarm card now queries Android's `AlarmManager.getNextAlarmClock()` on launch and updates dynamically.
+- **Clear Standby Indication**: When no alarm is active, the card displays `--:--` and `"No alarm set • Choose a preset or tap +"`, ensuring zero ambiguity.
+- **Interactive Quick Presets & Clock App Link**: Selecting presets now schedules live alarms seamlessly with confirmation feedback, and an "OPEN CLOCK" button provides immediate access to system alarms and timers.
 
-#### 2. Streamlined Notification Hub
-- Removed the separate `APPS` tab from the Notification Hub.
-- Refined category filters to four essential, high-signal tabs: `ALL`, `MESSAGE`, `CALLS`, and `EMAIL`.
-- Non-communication notifications remain accessible in the unified `ALL` view without visual clutter.
+#### 2. Settings System Widgets Visibility & Flow Layout
+- **No More Hidden or Clipped Widgets**: Fixed an issue where unadded or deleted home screen system widgets disappeared because of an unscrollable single `Row`. Replaced with responsive `FlowRow` wrapping so all widgets (`+ clock`, `+ calendar`, `+ battery`, `+ alarms`, `+ widgets`) are always visible and accessible.
+- **Smart Category Search**: Resolved query mismatch where searching for "widgets" hid the widgets section due to strict singular string checks. Added bidirectional keyword matching for plural searches.
+- **Persistent Layout Registration**: Automatically ensures `SYSTEM_WIDGETS` is appended to active layout orders whenever a system app widget is added.
 
-#### 3. Default Launcher & System Perfection in Onboarding
-- Preserves the v1.9.1 setup wizard with live status badges (`DEFAULT` / `SYSTEM PICKER`, `GRANTED` / `ALLOW ACCESS`).
-- Automatic default home launcher prompt upon completing onboarding.
-
-#### 4. Architecture & Quality
+#### 3. Architecture & Quality
 - Target SDK: Android 15/16 (API 36).
 - Minimum SDK: Android 8.0 (API 26).
 - 100% private, local-first, zero telemetry, zero trackers, and zero ads.

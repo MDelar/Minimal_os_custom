@@ -151,6 +151,15 @@ class UserPreferences(private val context: Context) {
         context.dataStore.edit { prefs ->
             val current = prefs[DECK_SYSTEM_WIDGETS] ?: emptySet()
             prefs[DECK_SYSTEM_WIDGETS] = current + widgetId.toString()
+            val orderStr = prefs[DECK_WIDGETS_ORDER]
+            val currentOrder = if (orderStr.isNullOrBlank()) {
+                DEFAULT_DECK_WIDGETS
+            } else {
+                orderStr.split(",").filter { it.isNotBlank() }
+            }
+            if ("SYSTEM_WIDGETS" !in currentOrder) {
+                prefs[DECK_WIDGETS_ORDER] = (currentOrder + "SYSTEM_WIDGETS").distinct().joinToString(",")
+            }
         }
     }
 
@@ -165,6 +174,15 @@ class UserPreferences(private val context: Context) {
         context.dataStore.edit { prefs ->
             val current = prefs[HOME_SYSTEM_WIDGETS] ?: emptySet()
             prefs[HOME_SYSTEM_WIDGETS] = current + widgetId.toString()
+            val widgetsStr = prefs[HOME_WIDGETS_LIST]
+            val currentWidgets = if (widgetsStr.isNullOrBlank()) {
+                DEFAULT_HOME_WIDGETS
+            } else {
+                widgetsStr.split(",").filter { it.isNotBlank() }
+            }
+            if ("SYSTEM_WIDGETS" !in currentWidgets) {
+                prefs[HOME_WIDGETS_LIST] = (currentWidgets + "SYSTEM_WIDGETS").distinct().joinToString(",")
+            }
         }
     }
 

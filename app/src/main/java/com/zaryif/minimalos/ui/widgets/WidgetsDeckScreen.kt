@@ -10,9 +10,12 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Launch
 import com.zaryif.minimalos.ui.components.MinimalAlarmTimePickerDialog
+import com.zaryif.minimalos.util.AlarmClockPermissionHelper
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -60,6 +63,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -272,20 +276,7 @@ fun WidgetsDeckScreen(
                                         executeCommandUseCase.execute(":$query")
                                     },
                                     onOpenClock = {
-                                        try {
-                                            val intent = Intent(AlarmClock.ACTION_SHOW_ALARMS).apply {
-                                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                            }
-                                            context.startActivity(intent)
-                                        } catch (_: Exception) {
-                                            try {
-                                                val intent = Intent(AlarmClock.ACTION_SET_ALARM).apply {
-                                                    putExtra(AlarmClock.EXTRA_SKIP_UI, false)
-                                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                                }
-                                                context.startActivity(intent)
-                                            } catch (_: Exception) {}
-                                        }
+                                        AlarmClockPermissionHelper.openClockApp(context)
                                     }
                                 )
                             }
@@ -995,6 +986,42 @@ private fun RabbitAlarmWidgetCard(
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var selectedTimeDisplay by remember { mutableStateOf("7:00 AM") }
     var selectedDayDisplay by remember { mutableStateOf("Tomorrow") }
+    var hasUserSelectedPreset by remember { mutableStateOf(false) }
+
+    // Live query for scheduled system alarm
+    var triggerTime by remember { mutableLongStateOf(0L) }
+    var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var hasExactPermission by remember {
+        mutableStateOf(AlarmClockPermissionHelper.canScheduleExactAlarms(context))
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
+            triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
+            currentTime = System.currentTimeMillis()
+            delay(1000)
+        }
+    }
+
+    val diffMs = triggerTime - currentTime
+    val hasActiveAlarm = triggerTime > 0L && diffMs > 0L
+
+    val activeAlarmTimeFormatted = remember(triggerTime, hasActiveAlarm) {
+        if (!hasActiveAlarm) ""
+        else {
+            val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
+            sdf.format(Date(triggerTime))
+        }
+    }
+
+    val activeAlarmDayFormatted = remember(triggerTime, hasActiveAlarm) {
+        if (!hasActiveAlarm) ""
+        else {
+            val sdf = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
+            sdf.format(Date(triggerTime))
+        }
+    }
 
     val presetTimes = listOf("6:00 AM", "7:00 AM", "7:30 AM", "8:00 AM")
 
@@ -1033,6 +1060,7 @@ private fun RabbitAlarmWidgetCard(
                 val commandQuery = "$formattedTime $dayLabel"
                 onSetAlarm(commandQuery)
                 statusFeedback = "Alarm set for $formattedTime ($dayLabel)"
+                hasUserSelectedPreset = false
             }
         )
     }
@@ -1042,7 +1070,7 @@ private fun RabbitAlarmWidgetCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(MinimalCardBg)
-            .border(1.5.dp, MinimalRed, RoundedCornerShape(16.dp))
+            .border(1.5.dp, if (hasActiveAlarm) MinimalRed else MinimalDarkGray, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         Column {
@@ -1052,11 +1080,14 @@ private fun RabbitAlarmWidgetCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.clickable { onOpenClock() },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(
                         imageVector = Icons.Default.Alarm,
-                        contentDescription = null,
-                        tint = MinimalRed,
+                        contentDescription = "Open Clock",
+                        tint = if (hasActiveAlarm) MinimalRed else MinimalGray,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -1070,30 +1101,50 @@ private fun RabbitAlarmWidgetCard(
                     )
                 }
 
-                // Date selector indicator / pill
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MinimalDarkCardBg)
-                        .border(1.dp, MinimalDarkGray, RoundedCornerShape(6.dp))
-                        .clickable { openDatePicker() }
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        tint = MinimalRed,
-                        modifier = Modifier.size(11.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = selectedDayDisplay,
-                        fontFamily = AppleSanFranciscoFontFamily,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MinimalWhite
-                    )
+                // Active indicator or Date selector pill
+                if (hasActiveAlarm) {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(MinimalDarkCardBg)
+                            .border(1.dp, MinimalRed.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                            .clickable { onOpenClock() }
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "● ACTIVE",
+                            fontFamily = AppleSanFranciscoFontFamily,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MinimalRed
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(MinimalDarkCardBg)
+                            .border(1.dp, MinimalDarkGray, RoundedCornerShape(6.dp))
+                            .clickable { openDatePicker() }
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = MinimalRed,
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = selectedDayDisplay,
+                            fontFamily = AppleSanFranciscoFontFamily,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MinimalWhite
+                        )
+                    }
                 }
             }
 
@@ -1106,26 +1157,30 @@ private fun RabbitAlarmWidgetCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 presetTimes.forEach { preset ->
-                    val isCurrent = selectedTimeDisplay == preset
+                    val isSelected = hasUserSelectedPreset && selectedTimeDisplay == preset
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(if (isCurrent) MinimalRed else MinimalDarkCardBg)
-                            .border(1.dp, if (isCurrent) MinimalRed else MinimalDarkGray, RoundedCornerShape(6.dp))
-                            .clickable { selectedTimeDisplay = preset }
+                            .background(if (isSelected) MinimalRed else MinimalDarkCardBg)
+                            .border(1.dp, if (isSelected) MinimalRed else MinimalDarkGray, RoundedCornerShape(6.dp))
+                            .clickable {
+                                selectedTimeDisplay = preset
+                                hasUserSelectedPreset = true
+                                statusFeedback = null
+                            }
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = preset,
                             fontFamily = AppleSanFranciscoFontFamily,
                             fontSize = 10.sp,
-                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isCurrent) MinimalOnAccent else MinimalWhite
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) MinimalOnAccent else MinimalWhite
                         )
                     }
                 }
 
-                val isCustomTime = selectedTimeDisplay !in presetTimes
+                val isCustomTime = hasUserSelectedPreset && selectedTimeDisplay !in presetTimes
                 if (isCustomTime) {
                     Box(
                         modifier = Modifier
@@ -1166,32 +1221,58 @@ private fun RabbitAlarmWidgetCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Main Display Row: 44sp time + Rings subtitle on left, two 42dp action buttons on right!
+            // Main Display Row: Time + Subtitle on left, action buttons on right!
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = selectedTimeDisplay,
-                        fontFamily = AppleSanFranciscoFontFamily,
-                        fontSize = 44.sp,
-                        fontWeight = FontWeight.Light,
-                        color = MinimalWhite
-                    )
-                    Text(
-                        text = "Rings $selectedDayDisplay",
-                        fontFamily = AppleSanFranciscoFontFamily,
-                        fontSize = 11.sp,
-                        color = MinimalGray
-                    )
+                Column(modifier = Modifier.weight(1f)) {
+                    if (hasActiveAlarm) {
+                        Text(
+                            text = activeAlarmTimeFormatted,
+                            fontFamily = AppleSanFranciscoFontFamily,
+                            fontSize = 44.sp,
+                            fontWeight = FontWeight.Light,
+                            color = MinimalWhite
+                        )
+                        Text(
+                            text = "Rings $activeAlarmDayFormatted",
+                            fontFamily = AppleSanFranciscoFontFamily,
+                            fontSize = 11.sp,
+                            color = MinimalRed
+                        )
+                    } else {
+                        Text(
+                            text = if (hasUserSelectedPreset) selectedTimeDisplay else "--:--",
+                            fontFamily = AppleSanFranciscoFontFamily,
+                            fontSize = 44.sp,
+                            fontWeight = FontWeight.Light,
+                            color = if (hasUserSelectedPreset) MinimalWhite else MinimalGray
+                        )
+                        Text(
+                            text = if (hasUserSelectedPreset) {
+                                "Tap ⏰ to set for $selectedDayDisplay"
+                            } else {
+                                "No alarm set • Choose a preset or tap +"
+                            },
+                            fontFamily = AppleSanFranciscoFontFamily,
+                            fontSize = 11.sp,
+                            color = MinimalGray
+                        )
+                    }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Button 1: Calendar Date Picker button (matches reset button on pomodoro)
+                    // Button 1: Clock / Calendar button
                     IconButton(
-                        onClick = { openDatePicker() },
+                        onClick = {
+                            if (hasActiveAlarm) {
+                                onOpenClock()
+                            } else {
+                                openDatePicker()
+                            }
+                        },
                         modifier = Modifier
                             .size(42.dp)
                             .clip(RoundedCornerShape(10.dp))
@@ -1199,19 +1280,21 @@ private fun RabbitAlarmWidgetCard(
                             .border(1.dp, MinimalDarkGray, RoundedCornerShape(10.dp))
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = "Pick Date",
+                            imageVector = if (hasActiveAlarm) Icons.Default.Schedule else Icons.Default.CalendarMonth,
+                            contentDescription = if (hasActiveAlarm) "Open Clock" else "Pick Date",
                             tint = MinimalGray,
                             modifier = Modifier.size(20.dp)
                         )
                     }
 
-                    // Button 2: Set Alarm (matches start button on pomodoro in MinimalRed)
+                    // Button 2: Set Alarm
                     IconButton(
                         onClick = {
-                            val query = "$selectedTimeDisplay $selectedDayDisplay"
+                            val timeToSet = if (hasUserSelectedPreset) selectedTimeDisplay else "7:00 AM"
+                            val query = "$timeToSet $selectedDayDisplay"
                             onSetAlarm(query)
-                            statusFeedback = "Alarm set for $selectedTimeDisplay ($selectedDayDisplay)"
+                            statusFeedback = "Alarm set for $timeToSet ($selectedDayDisplay)"
+                            hasUserSelectedPreset = false
                         },
                         modifier = Modifier
                             .size(42.dp)
@@ -1241,7 +1324,10 @@ private fun RabbitAlarmWidgetCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,

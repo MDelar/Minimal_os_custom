@@ -146,6 +146,8 @@ fun SettingsScreen(
     val commandHistory by userPreferences.commandHistory.collectAsState(initial = emptyList())
     val showAllTodosPref by userPreferences.homeShowAllTodos.collectAsState(initial = false)
     val showAllNotesPref by userPreferences.homeShowAllNotes.collectAsState(initial = false)
+    val homeSystemWidgets by userPreferences.homeSystemWidgets.collectAsState(initial = emptySet())
+    val deckSystemWidgets by userPreferences.deckSystemWidgets.collectAsState(initial = emptySet())
 
     // UI state
     var searchQuery by remember { mutableStateOf("") }
@@ -386,7 +388,8 @@ fun SettingsScreen(
             // =========================================================
             // CATEGORY 1: PERSONALIZATION & APPEARANCE
             // =========================================================
-            if (q.isEmpty() || "appearance".contains(q) || "theme".contains(q) || "color".contains(q) || "accent".contains(q) || "wallpaper".contains(q)) {
+            val appearanceKeywords = listOf("appearance", "theme", "themes", "color", "accent", "wallpaper", "personalization")
+            if (q.isEmpty() || appearanceKeywords.any { it.contains(q) || q.contains(it) }) {
                 SettingsSectionHeader(title = "APPEARANCE & PERSONALIZATION")
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -640,7 +643,8 @@ fun SettingsScreen(
             // =========================================================
             // CATEGORY 2: HOME SCREEN & SHORTCUTS
             // =========================================================
-            if (q.isEmpty() || "home".contains(q) || "shortcut".contains(q) || "widget".contains(q) || "todo".contains(q) || "note".contains(q)) {
+            val homeKeywords = listOf("home", "shortcut", "shortcuts", "widget", "widgets", "system", "todo", "task", "tasks", "note", "notes", "alarm", "pomodoro")
+            if (q.isEmpty() || homeKeywords.any { it.contains(q) || q.contains(it) }) {
                 SettingsSectionHeader(title = "HOME SCREEN & SHORTCUTS")
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -717,7 +721,7 @@ fun SettingsScreen(
                     )
 
                     AnimatedVisibility(
-                        visible = isHomeWidgetsExpanded || q.contains("widget"),
+                        visible = isHomeWidgetsExpanded || q.contains("widget") || "widget".contains(q) || q.contains("home"),
                         enter = fadeIn() + expandVertically(),
                         exit = fadeOut() + shrinkVertically()
                     ) {
@@ -729,7 +733,16 @@ fun SettingsScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             homeWidgets.forEachIndexed { index, widgetKey ->
-                                val label = allHomeWidgetOptions.find { it.first == widgetKey }?.second ?: widgetKey
+                                val baseLabel = allHomeWidgetOptions.find { it.first == widgetKey }?.second ?: widgetKey
+                                val label = if (widgetKey == "SYSTEM_WIDGETS") {
+                                    if (homeSystemWidgets.isNotEmpty()) {
+                                        "widgets (${homeSystemWidgets.size} app widget${if (homeSystemWidgets.size > 1) "s" else ""} hosted)"
+                                    } else {
+                                        "widgets (native Android app widgets)"
+                                    }
+                                } else {
+                                    baseLabel
+                                }
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -791,12 +804,27 @@ fun SettingsScreen(
 
                             val unadded = allHomeWidgetOptions.filter { it.first !in homeWidgets }
                             if (unadded.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "TAP TO ADD WIDGET TO HOME:",
+                                    fontFamily = AppleSanFranciscoFontFamily,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MinimalGray,
+                                    letterSpacing = 0.5.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     unadded.forEach { (key, name) ->
+                                        val shortLabel = when (key) {
+                                            "SYSTEM_WIDGETS" -> "widgets (system)"
+                                            "ALARM_COUNTDOWN" -> "alarm"
+                                            else -> name.split(" ").first()
+                                        }
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(6.dp))
@@ -811,7 +839,7 @@ fun SettingsScreen(
                                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                                         ) {
                                             Text(
-                                                text = "+ ${name.split(" ").first()}",
+                                                text = "+ $shortLabel",
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MinimalRed
@@ -871,7 +899,8 @@ fun SettingsScreen(
             // =========================================================
             // CATEGORY 3: WIDGETS DECK
             // =========================================================
-            if (q.isEmpty() || "deck".contains(q) || "widget".contains(q) || "card".contains(q) || "pomodoro".contains(q)) {
+            val deckKeywords = listOf("deck", "widget", "widgets", "card", "cards", "pomodoro", "alarm", "alarms", "alias", "aliases", "timer", "timers", "system")
+            if (q.isEmpty() || deckKeywords.any { it.contains(q) || q.contains(it) }) {
                 SettingsSectionHeader(title = "WIDGETS DECK (PAGE 3)")
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -903,7 +932,7 @@ fun SettingsScreen(
                     )
 
                     AnimatedVisibility(
-                        visible = isDeckWidgetsExpanded || q.contains("deck"),
+                        visible = isDeckWidgetsExpanded || q.contains("deck") || "deck".contains(q) || q.contains("widget") || "widget".contains(q),
                         enter = fadeIn() + expandVertically(),
                         exit = fadeOut() + shrinkVertically()
                     ) {
@@ -915,7 +944,16 @@ fun SettingsScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             deckWidgetsOrder.forEachIndexed { index, deckKey ->
-                                val label = allDeckWidgetOptions.find { it.first == deckKey }?.second ?: deckKey
+                                val baseLabel = allDeckWidgetOptions.find { it.first == deckKey }?.second ?: deckKey
+                                val label = if (deckKey == "SYSTEM_WIDGETS") {
+                                    if (deckSystemWidgets.isNotEmpty()) {
+                                        "system app widgets (${deckSystemWidgets.size} active)"
+                                    } else {
+                                        "system app widgets"
+                                    }
+                                } else {
+                                    baseLabel
+                                }
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -977,12 +1015,27 @@ fun SettingsScreen(
 
                             val unaddedDeck = allDeckWidgetOptions.filter { it.first !in deckWidgetsOrder }
                             if (unaddedDeck.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "TAP TO ADD CARD TO DECK:",
+                                    fontFamily = AppleSanFranciscoFontFamily,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MinimalGray,
+                                    letterSpacing = 0.5.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     unaddedDeck.forEach { (key, name) ->
+                                        val shortLabel = when (key) {
+                                            "SYSTEM_WIDGETS" -> "system widgets"
+                                            "ALARMS" -> "alarms"
+                                            else -> name.split(" ").first()
+                                        }
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(6.dp))
@@ -994,7 +1047,7 @@ fun SettingsScreen(
                                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                                         ) {
                                             Text(
-                                                text = "+ ${name.split(" ").first()}",
+                                                text = "+ $shortLabel",
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MinimalRed
@@ -1012,7 +1065,8 @@ fun SettingsScreen(
             // =========================================================
             // CATEGORY 4: COMMANDS & SHORTCUTS
             // =========================================================
-            if (q.isEmpty() || "command".contains(q) || "alias".contains(q) || "feedback".contains(q) || "popup".contains(q) || "history".contains(q)) {
+            val commandKeywords = listOf("command", "commands", "alias", "aliases", "feedback", "popup", "history", "terminal")
+            if (q.isEmpty() || commandKeywords.any { it.contains(q) || q.contains(it) }) {
                 SettingsSectionHeader(title = "COMMAND BAR & SHORTCUTS")
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -1186,7 +1240,8 @@ fun SettingsScreen(
             // =========================================================
             // CATEGORY 5: SYSTEM & ASSISTANT
             // =========================================================
-            if (q.isEmpty() || "assistant".contains(q) || "system".contains(q) || "launcher".contains(q) || "notification".contains(q)) {
+            val systemKeywords = listOf("assistant", "assistants", "system", "launcher", "notification", "notifications", "clock", "alarm", "permission")
+            if (q.isEmpty() || systemKeywords.any { it.contains(q) || q.contains(it) }) {
                 SettingsSectionHeader(title = "SYSTEM & ASSISTANT")
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -1342,10 +1397,8 @@ fun SettingsScreen(
             // =========================================================
             // CATEGORY 6: ABOUT & SYSTEM INFO
             // =========================================================
-            if (q.isEmpty() || "about".contains(q) || "version".contains(q) || "release".contains(q) ||
-                "developer".contains(q) || "author".contains(q) || "zarif".contains(q) ||
-                "coffee".contains(q) || "support".contains(q) || "onboarding".contains(q) ||
-                "guide".contains(q) || "docs".contains(q) || "license".contains(q)) {
+            val aboutKeywords = listOf("about", "version", "release", "developer", "author", "zarif", "coffee", "support", "onboarding", "guide", "docs", "license")
+            if (q.isEmpty() || aboutKeywords.any { it.contains(q) || q.contains(it) }) {
                 SettingsSectionHeader(title = "ABOUT & INFORMATION")
                 Spacer(modifier = Modifier.height(8.dp))
 

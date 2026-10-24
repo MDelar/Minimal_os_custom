@@ -9,15 +9,15 @@ This directory contains all official top-brand graphic assets, showcase mockups,
 ```text
 store_listing/
 ├── README.md                                  # This directory index and upload guide
-├── Minimal_OS_v1.9.2_b23.aab                  # Signed Release App Bundle for Google Play Console (v1.9.2, Build 23)
-├── Minimal_OS_v1.9.2_b23.apk                  # Signed Release APK for direct sideloading and testing
+├── Minimal_OS_v1.9.3_b24.aab                  # Signed Release App Bundle for Google Play Console (v1.9.3, Build 24)
+├── Minimal_OS_v1.9.3_b24.apk                  # Signed Release APK for direct sideloading and testing
 ├── copy/                                      # Ready-to-paste store listing and policy text
 │   ├── 01_store_listing_copy.md               # Title, short description (<80 chars), full description
 │   ├── 02_privacy_policy.md                   # Zero-telemetry privacy policy
 │   ├── 03_data_safety_answers.md              # Exact Play Console Data Safety questionnaire answers
 │   ├── 04_target_audience_and_content_rating.md # Content rating and app declarations walkthrough
 │   ├── 05_closed_testing_and_production_guide.md # 14-day / 20-tester playbook to unlock production
-│   └── 06_release_notes.md                    # Release notes for v1.9.2 (Build 23) in en-US
+│   └── 06_release_notes.md                    # Release notes for v1.9.3 (Build 24) in en-US
 ├── graphics/                                  # Top-Brand Formatted Store Assets
 │   ├── icon_512x512.png                       # 512x512 PNG app icon (Main store listing)
 │   ├── feature_graphic_1024x500.png           # 1024x500 PNG banner (Main store listing)
@@ -72,8 +72,8 @@ All assets in this directory are synchronized with:
 - **Full description**: Copy from `copy/01_store_listing_copy.md`
 
 ### 2. Testing > Closed Testing (or Open Testing / Production)
-- **Upload Release Bundle**: `Minimal_OS_v1.9.2_b23.aab`
-- **Release Name**: `1.9.2`
+- **Upload Release Bundle**: `Minimal_OS_v1.9.3_b24.aab`
+- **Release Name**: `1.9.3`
 - **Release Notes**: Copy the `<en-US>` block from `copy/06_release_notes.md`
 
 ---
