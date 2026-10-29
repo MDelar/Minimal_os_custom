@@ -256,9 +256,9 @@ class ExecuteCommandUseCase(
         ) == PackageManager.PERMISSION_GRANTED
 
         val intent = if (hasCallPermission) {
-            Intent(Intent.ACTION_CALL, Uri.parse("tel:$phoneNumber"))
+            Intent(Intent.ACTION_CALL, Uri.parse("tel:${Uri.encode(phoneNumber)}"))
         } else {
-            Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phoneNumber"))
+            Intent(Intent.ACTION_DIAL, Uri.parse("tel:${Uri.encode(phoneNumber)}"))
         }.apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
@@ -388,94 +388,6 @@ class ExecuteCommandUseCase(
                 CommandResult.Error("Could not open calendar: ${e.message}")
             }
         }
-    }
-
-    private data class ParsedEventTime(
-        val cleanTitle: String,
-        val startMillis: Long,
-        val calendar: Calendar
-    )
-
-    private fun parseNaturalTime(input: String): Pair<Int, Int> {
-        val lower = input.lowercase(Locale.getDefault()).trim()
-        
-        // Match patterns like: "at 7:30 am", "at 7.30 am", "7: 30 am", "7. 30 am", "7.30am", "7:30pm", "7 am", "at 7pm", "19:30", "19.30"
-        val regex = Regex("(?i)\\b(?:at\\s+|for\\s+)?(\\d{1,2})(?:\\s*[:.]\\s*(\\d{2}))?\\s*(am|pm)?\\b")
-        val match = regex.find(lower)
-        if (match != null) {
-            val hStr = match.groupValues[1]
-            val mStr = match.groupValues[2]
-            val ampm = match.groupValues[3].lowercase()
-
-            var h = hStr.toIntOrNull() ?: 7
-            val m = mStr.toIntOrNull() ?: 0
-
-            if (ampm == "pm" && h < 12) h += 12
-            else if (ampm == "am" && h == 12) h = 0
-
-            return Pair(h.coerceIn(0, 23), m.coerceIn(0, 59))
-        }
-
-        // Common colloquial terms
-        if (lower.contains("noon")) return Pair(12, 0)
-        if (lower.contains("midnight")) return Pair(0, 0)
-        if (lower.contains("morning")) return Pair(8, 0)
-        if (lower.contains("afternoon")) return Pair(14, 0)
-        if (lower.contains("evening")) return Pair(18, 0)
-        if (lower.contains("night")) return Pair(21, 0)
-
-        return Pair(7, 0)
-    }
-
-    private fun parseNaturalEventTime(rawInput: String): ParsedEventTime {
-        val cal = Calendar.getInstance()
-        var title = rawInput.trim()
-        val lower = rawInput.lowercase(Locale.getDefault())
-
-        if (lower.contains("tomorrow")) {
-            cal.add(Calendar.DAY_OF_YEAR, 1)
-            title = title.replace(Regex("(?i)\\btomorrow\\b"), "").trim()
-        }
-
-        // Match time with colon or dot, with optional space between hour & min
-        val timeRegex = Regex("(?i)\\b(?:at\\s+|for\\s+)?(\\d{1,2})(?:\\s*[:.]\\s*(\\d{2}))?\\s*(am|pm)?\\b")
-        val match = timeRegex.find(lower)
-
-        var hour = cal.get(Calendar.HOUR_OF_DAY) + 1
-        var minute = 0
-
-        if (match != null) {
-            val rawHour = match.groupValues[1].toIntOrNull()
-            val rawMin = match.groupValues[2].toIntOrNull() ?: 0
-            val ampm = match.groupValues[3].lowercase()
-
-            if (rawHour != null && rawHour in 1..24) {
-                hour = rawHour
-                minute = rawMin
-                if (ampm == "pm" && hour < 12) hour += 12
-                if (ampm == "am" && hour == 12) hour = 0
-                if (ampm.isBlank() && hour in 1..7) hour += 12 // Assume 2-7 means PM for daytime events
-
-                // Remove matched time segment from title
-                title = title.removeRange(match.range).trim()
-            }
-        }
-
-        // Clean up remaining dangling prepositions like "at" or "on"
-        title = title.replace(Regex("(?i)\\b(at|on|for)\\s*$"), "").trim()
-        title = title.replace(Regex("(?i)^\\b(at|on|for)\\s+"), "").trim()
-        if (title.isBlank()) title = "New Event"
-
-        cal.set(Calendar.HOUR_OF_DAY, hour)
-        cal.set(Calendar.MINUTE, minute)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-
-        return ParsedEventTime(
-            cleanTitle = title.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
-            startMillis = cal.timeInMillis,
-            calendar = cal
-        )
     }
 
     private fun parseNaturalDurationSeconds(arg: String, defaultMinutes: Int): Int {
@@ -925,7 +837,7 @@ class ExecuteCommandUseCase(
 
         // Case 3: Re-evaluate as an expanded launcher command (e.g. target is "- todo", "!", or "event")
         val isPrefixed = CommandType.fromSymbol(target.first()) != null ||
-                listOf("alarm", "timer", "todo", "note", "event", "call", "msg", "email", "drive", "ask", "help")
+                listOf("alarm", "timer", "todo", "note", "event", "call", "msg", "email", "drive", "ask", "help", "pomo", "pomodoro", "yt", "youtube", "uninstall", "wa", "whatsapp")
                     .any { target.lowercase().startsWith(it) }
         if (isPrefixed) {
             val expanded = if (args.isNotBlank()) "$target $args" else target

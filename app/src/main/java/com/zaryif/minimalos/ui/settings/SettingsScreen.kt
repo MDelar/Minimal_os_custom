@@ -133,7 +133,6 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
 
     // Preferences collection
-    val selectedAiProvider by userPreferences.aiProvider.collectAsState(initial = AiProvider.GEMINI)
     val assistantPackage by userPreferences.assistantPackage.collectAsState(initial = null)
     val showCommandFeedback by userPreferences.showCommandFeedback.collectAsState(initial = true)
     val customWallpaperUri by userPreferences.customWallpaperUri.collectAsState(initial = null)

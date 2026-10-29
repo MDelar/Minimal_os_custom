@@ -597,7 +597,7 @@ fun HomeScreen(
                                 query.trim().startsWith("/")
                         query = ""
                         if (isUninstall) {
-                            val result = executeCommandUseCase.execute("uninstall ${app.label}")
+                            val result = executeCommandUseCase.execute("uninstall ${app.packageName}")
                             when (result) {
                                 is CommandResult.Success -> notificationMessage = result.message
                                 is CommandResult.Error -> notificationMessage = result.error

@@ -173,7 +173,7 @@ fun CommandBar(
 
             if (trimmedInput.isNotEmpty()) {
                 val firstChar = trimmedInput[0]
-                if (firstChar in setOf('-', '!', '#', '@', '=', '+', ':', '*', '?', '^', '&', '$', '%', '/')) {
+                if (firstChar in setOf('-', '!', '#', '@', '=', '+', ':', '*', '?', '^', '&', '$', '%', '/', '~')) {
                     triggerEnd = leadingSpaces + 1
                 } else if (trimmedInput.lowercase().startsWith("set alarm ") || trimmedInput.lowercase() == "set alarm") {
                     triggerEnd = leadingSpaces + 9

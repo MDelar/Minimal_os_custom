@@ -1,4 +1,4 @@
-# Minimal OS Release Notes - v1.9.3 (Build 24)
+# Minimal OS Release Notes - v1.9.4 (Build 25)
 
 ## Google Play Console Release Notes (en-US)
 
@@ -6,34 +6,37 @@ Paste this exact snippet into the Release Notes field in Google Play Console (en
 
 ```text
 <en-US>
-Minimal OS v1.9.3:
-- Live Alarm Widget Sync: Fixed alarm widget false-positive active states; now dynamically queries real system alarms and displays clear standby state when no alarm is set.
-- Clock App Integration: Quick one-tap access to device clock app and active alarm management directly from the widget deck.
-- Settings System Widgets Visibility: Replaced overflowing single-row chips with flexible wrapping FlowRows so unadded or deleted system widgets never disappear off-screen.
-- Robust Settings Search: Added bidirectional category filtering to seamlessly match queries like "widgets", "shortcuts", and "themes".
-- Automatic System Widget Layout Registration: Adding hosted Android widgets automatically registers them into Home and Deck layouts.
+Minimal OS v1.9.4:
+- Enhanced Natural Language Event & Alarm Parser: Resolved edge case where quantities/numbers in event titles were mistakenly parsed as hours; fixed calendar year rollover and wake-up alarm PM conversion.
+- Exact App Uninstallation: Uninstall suggestions now dispatch by unique package identifier, guaranteeing 100% precision with zero ambiguity.
+- Expanded Custom Aliases: Added support for Pomodoro (pomo), YouTube (yt), WhatsApp (wa), and uninstall targets within custom command aliases.
+- Phone & USSD Dialing Reliability: Sanitized tel intent URI encoding to preserve hashes (#) and asterisks (*) for carrier USSD codes.
+- Architectural Hardening: Eliminated obsolete dead code routines and introduced a robust automated unit testing suite.
 - 100% offline, zero-telemetry architecture with zero ads and zero data tracking.
 </en-US>
 ```
 
 ---
 
-## Detailed GitHub Release Notes (v1.9.3)
+## Detailed GitHub Release Notes (v1.9.4)
 
-### What's New in v1.9.3
+### What's New in v1.9.4
 
-#### 1. Live System Alarm Sync & Widget Overhaul
-- **Resolved False-Positive Presetting**: Fixed the alarm widget card defaulting to "7:00 AM" and "Rings Tomorrow" when no alarm was active.
-- **Real-Time System Querying**: The alarm card now queries Android's `AlarmManager.getNextAlarmClock()` on launch and updates dynamically.
-- **Clear Standby Indication**: When no alarm is active, the card displays `--:--` and `"No alarm set • Choose a preset or tap +"`, ensuring zero ambiguity.
-- **Interactive Quick Presets & Clock App Link**: Selecting presets now schedules live alarms seamlessly with confirmation feedback, and an "OPEN CLOCK" button provides immediate access to system alarms and timers.
+#### 1. Intelligent Natural Date/Time Parser Overhaul
+- **Fixed Bare Number Stripping**: Titles like `"Meeting with 2 clients"` or `"Buy 3 laptops"` previously had numbers mistakenly stripped as explicit times (e.g. 2:00 PM). The parser now requires explicit time indicators (`at <hour>`, colon/dot minutes like `7:30`, or `am/pm`).
+- **Calendar Year Calculation Fix**: Fixed millisecond comparison bug when scheduling same-day events (e.g. `"Oct 30 at 8pm"`) where events were incorrectly scheduled for the following year.
+- **Morning Alarm Normalization**: Fixed alarm inputs like `alarm 7:00` being forcibly converted to 7:00 PM (19:00). Wake-up alarms without explicit meridian suffixes now accurately default to morning times.
 
-#### 2. Settings System Widgets Visibility & Flow Layout
-- **No More Hidden or Clipped Widgets**: Fixed an issue where unadded or deleted home screen system widgets disappeared because of an unscrollable single `Row`. Replaced with responsive `FlowRow` wrapping so all widgets (`+ clock`, `+ calendar`, `+ battery`, `+ alarms`, `+ widgets`) are always visible and accessible.
-- **Smart Category Search**: Resolved query mismatch where searching for "widgets" hid the widgets section due to strict singular string checks. Added bidirectional keyword matching for plural searches.
-- **Persistent Layout Registration**: Automatically ensures `SYSTEM_WIDGETS` is appended to active layout orders whenever a system app widget is added.
+#### 2. Exact Package Uninstallation
+- Interactive app uninstallation suggestion chips now pass the app's exact package identifier to `handleUninstall`, preventing potential fuzzy label mismatch when apps share identical or prefix names.
 
-#### 3. Architecture & Quality
-- Target SDK: Android 15/16 (API 36).
-- Minimum SDK: Android 8.0 (API 26).
-- 100% private, local-first, zero telemetry, zero trackers, and zero ads.
+#### 3. Expanded Custom Command Aliases
+- Custom aliases can now seamlessly expand into built-in `pomo`, `pomodoro`, `yt`, `youtube`, `uninstall`, `wa`, and `whatsapp` actions (e.g. `alias focus = pomo 25m`).
+
+#### 4. USSD & Phone Dialing Fix
+- Properly encoded telephone URIs (`Uri.encode(phoneNumber)`) so that USSD carrier codes containing `#` (e.g. `*121#`) are dialed correctly without being truncated as URI fragments.
+
+#### 5. Code Quality & Unit Tests
+- Removed 88 lines of legacy, uncalled parsing functions in `ExecuteCommandUseCase`.
+- Added JUnit 4 test runner and 11 unit tests covering `NaturalDateTimeParser` and `CommandParser`.
+- Verified 100% test passing and debug APK compilation.

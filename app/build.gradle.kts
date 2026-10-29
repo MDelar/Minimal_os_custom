@@ -16,8 +16,8 @@ android {
         applicationId = "com.minimal.os"
         minSdk = 26
         targetSdk = 36
-        versionCode = 24
-        versionName = "1.9.3"
+        versionCode = 25
+        versionName = "1.9.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -95,6 +95,9 @@ dependencies {
 
     // DataStore Preferences
     implementation("androidx.datastore:datastore-preferences:1.1.2")
+
+    // Testing
+    testImplementation("junit:junit:4.13.2")
 
     // Debug Tooling
     debugImplementation("androidx.compose.ui:ui-tooling")

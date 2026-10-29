@@ -123,7 +123,10 @@ object NaturalDateTimeParser {
                 if (day != null && month != null && day in 1..31) {
                     cal.set(Calendar.MONTH, month)
                     cal.set(Calendar.DAY_OF_MONTH, day)
-                    if (cal.before(Calendar.getInstance())) {
+                    val now = Calendar.getInstance()
+                    val isPastDate = (cal.get(Calendar.MONTH) < now.get(Calendar.MONTH)) ||
+                        (cal.get(Calendar.MONTH) == now.get(Calendar.MONTH) && cal.get(Calendar.DAY_OF_MONTH) < now.get(Calendar.DAY_OF_MONTH))
+                    if (isPastDate) {
                         cal.add(Calendar.YEAR, 1)
                     }
                     workingText = workingText.removeRange(dmMatch.range).trim()
@@ -140,7 +143,10 @@ object NaturalDateTimeParser {
                     if (day != null && month != null && day in 1..31) {
                         cal.set(Calendar.MONTH, month)
                         cal.set(Calendar.DAY_OF_MONTH, day)
-                        if (cal.before(Calendar.getInstance())) {
+                        val now = Calendar.getInstance()
+                        val isPastDate = (cal.get(Calendar.MONTH) < now.get(Calendar.MONTH)) ||
+                            (cal.get(Calendar.MONTH) == now.get(Calendar.MONTH) && cal.get(Calendar.DAY_OF_MONTH) < now.get(Calendar.DAY_OF_MONTH))
+                        if (isPastDate) {
                             cal.add(Calendar.YEAR, 1)
                         }
                         workingText = workingText.removeRange(mdMatch.range).trim()
@@ -154,23 +160,27 @@ object NaturalDateTimeParser {
         var hour = cal.get(Calendar.HOUR_OF_DAY) + 1
         var minute = 0
 
-        val timeRegex = Regex("(?i)\\b(?:at\\s+|for\\s+)?(\\d{1,2})(?:\\s*[:.]\\s*(\\d{2}))?\\s*(am|pm)?\\b")
+        // Explicit time patterns (avoids bare numbers like "2" in "Buy 2 laptops"):
+        // 1) "at 7", "at 7:30", "at 7am", "at 7:30 pm"
+        // 2) "7:30", "7.30", "7:30am", "7:30 pm", "19:30" (with explicit colon/dot minutes)
+        // 3) "7am", "7 pm" (with explicit am/pm)
+        val timeRegex = Regex("(?i)\\b(?:at\\s+(\\d{1,2})(?:\\s*[:.]\\s*(\\d{2}))?\\s*(am|pm)?|(\\d{1,2})\\s*[:.]\\s*(\\d{2})\\s*(am|pm)?|(\\d{1,2})\\s*(am|pm))\\b")
         val timeMatch = timeRegex.find(workingText)
         if (timeMatch != null) {
-            val hStr = timeMatch.groupValues[1]
-            val mStr = timeMatch.groupValues[2]
-            val ampm = timeMatch.groupValues[3].lowercase(Locale.getDefault())
+            val hStr = timeMatch.groups[1]?.value ?: timeMatch.groups[4]?.value ?: timeMatch.groups[7]?.value ?: ""
+            val mStr = timeMatch.groups[2]?.value ?: timeMatch.groups[5]?.value ?: ""
+            val ampm = (timeMatch.groups[3]?.value ?: timeMatch.groups[6]?.value ?: timeMatch.groups[8]?.value ?: "").lowercase(Locale.getDefault())
 
             val rawHour = hStr.toIntOrNull()
             val rawMin = mStr.toIntOrNull() ?: 0
 
-            if (rawHour != null && rawHour in 0..24) {
+            if (rawHour != null && rawHour in 0..23) {
                 hour = rawHour
                 minute = rawMin
                 if (ampm == "pm" && hour < 12) hour += 12
                 else if (ampm == "am" && hour == 12) hour = 0
-                else if (ampm.isBlank() && hour in 1..7 && !workingText.contains("morning", ignoreCase = true)) {
-                    hour += 12 // Assume 2-7 means PM for afternoon/evening events
+                else if (ampm.isBlank() && !defaultTitle.equals("alarm", ignoreCase = true) && hour in 1..7 && !workingText.contains("morning", ignoreCase = true)) {
+                    hour += 12 // Assume 2-7 means PM for afternoon/evening events, but not for alarms
                 }
                 workingText = workingText.removeRange(timeMatch.range).trim()
                 hasExplicitTime = true

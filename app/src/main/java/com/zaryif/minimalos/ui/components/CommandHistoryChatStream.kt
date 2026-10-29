@@ -156,7 +156,7 @@ fun CommandHistoryChatStream(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                itemsIndexed(history, key = { index, item -> "$index-$item" }) { index, item ->
+                itemsIndexed(history, key = { _, item -> item }) { index, item ->
                     val isCurrentMatch = item.equals(currentQuery.trim(), ignoreCase = true)
 
                     // Squared Chat Message Card
