@@ -47,6 +47,7 @@ class UserPreferences(private val context: Context) {
         private val ASSISTANT_PACKAGE = stringPreferencesKey("assistant_package")
         private val QUICK_NOTE = stringPreferencesKey("quick_note")
         private val QUICK_NOTE_PINNED = booleanPreferencesKey("quick_note_pinned")
+        private val NOTIFICATION_HISTORY_ENABLED = booleanPreferencesKey("notification_history_enabled")
 
         val DEFAULT_HOME_WIDGETS = listOf("TODOS", "CALENDAR", "SHORTCUTS")
         val DEFAULT_DECK_WIDGETS = listOf("QUICK_NOTE", "NOTES", "TODOS", "CALENDAR", "POMODORO", "ALARMS", "ALIASES", "TIMERS", "SYSTEM_WIDGETS")
@@ -297,6 +298,15 @@ class UserPreferences(private val context: Context) {
     suspend fun setQuickNotePinned(pinned: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[QUICK_NOTE_PINNED] = pinned
+        }
+    }
+
+    val notificationHistoryEnabled: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[NOTIFICATION_HISTORY_ENABLED] ?: true }
+
+    suspend fun setNotificationHistoryEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[NOTIFICATION_HISTORY_ENABLED] = enabled
         }
     }
 

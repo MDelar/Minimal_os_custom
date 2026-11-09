@@ -18,22 +18,25 @@ class QuickNoteActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val appContext = context.applicationContext
         val userPreferences = UserPreferences(appContext)
+        val pendingResult = goAsync()
 
-        when (intent.action) {
-            ACTION_CLEAR_QUICK_NOTE -> {
-                CoroutineScope(Dispatchers.IO).launch {
-                    userPreferences.setQuickNote("")
-                    QuickNoteManager.cancelNotification(appContext)
-                }
-            }
-            Intent.ACTION_BOOT_COMPLETED -> {
-                CoroutineScope(Dispatchers.IO).launch {
-                    val savedNote = userPreferences.quickNote.first()
-                    val isPinned = userPreferences.quickNotePinned.first()
-                    if (savedNote.isNotBlank() && isPinned) {
-                        QuickNoteManager.postNotification(appContext, savedNote)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                when (intent.action) {
+                    ACTION_CLEAR_QUICK_NOTE -> {
+                        userPreferences.setQuickNote("")
+                        QuickNoteManager.cancelNotification(appContext)
+                    }
+                    Intent.ACTION_BOOT_COMPLETED -> {
+                        val savedNote = userPreferences.quickNote.first()
+                        val isPinned = userPreferences.quickNotePinned.first()
+                        if (savedNote.isNotBlank() && isPinned) {
+                            QuickNoteManager.postNotification(appContext, savedNote)
+                        }
                     }
                 }
+            } finally {
+                pendingResult.finish()
             }
         }
     }

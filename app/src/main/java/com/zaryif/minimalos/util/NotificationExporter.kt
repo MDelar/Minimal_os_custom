@@ -2,8 +2,12 @@ package com.zaryif.minimalos.util
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.zaryif.minimalos.data.repository.NotificationHistoryRepository
@@ -108,6 +112,58 @@ object NotificationExporter {
         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
         cm?.setPrimaryClip(ClipData.newPlainText("Minimal Notifications", text))
         Toast.makeText(context, "Copied log to clipboard", Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * Directly downloads the notification history as a .txt file to the device's public Downloads directory.
+     * Uses MediaStore.Downloads on Android 10+ (Q+) without requiring legacy storage permissions,
+     * and falls back to Environment.DIRECTORY_DOWNLOADS on older Android versions.
+     */
+    fun downloadToDevice(context: Context, items: List<NotificationItem>, forAssistant: Boolean = false): Boolean {
+        if (items.isEmpty()) {
+            Toast.makeText(context, "No alerts to download", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        return try {
+            val file = exportToTextFile(context, items, forAssistant)
+            val content = file.readText()
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = if (forAssistant) "minimal_assistant_prompt_$timestamp.txt" else "minimal_notifications_$timestamp.txt"
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                }
+                val resolver = context.contentResolver
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                if (uri != null) {
+                    resolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.write(content.toByteArray(Charsets.UTF_8))
+                        outputStream.flush()
+                    }
+                    Toast.makeText(context, "Saved to Downloads: $fileName", Toast.LENGTH_LONG).show()
+                    true
+                } else {
+                    Toast.makeText(context, "Failed to create download file", Toast.LENGTH_SHORT).show()
+                    false
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (!downloadsDir.exists()) {
+                    downloadsDir.mkdirs()
+                }
+                val targetFile = File(downloadsDir, fileName)
+                targetFile.writeText(content, Charsets.UTF_8)
+                Toast.makeText(context, "Saved to Downloads: $fileName", Toast.LENGTH_LONG).show()
+                true
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Download failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            false
+        }
     }
 }
 

@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.NotificationsNone
@@ -101,6 +102,8 @@ fun HubScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val prefs = remember(context, userPreferences) { userPreferences ?: UserPreferences(context) }
+    val isHistoryEnabled by prefs.notificationHistoryEnabled.collectAsState(initial = true)
     val liveNotifications by MinimalNotificationService.notifications.collectAsState()
     val historyRepo = remember { NotificationHistoryRepository.getInstance(context) }
     val archivedNotifications by historyRepo.history.collectAsState()
@@ -336,11 +339,39 @@ fun HubScreen(
                     )
                 }
 
-                Text(
-                    text = if (isArchiveMode) "local storage" else "active alerts",
-                    fontSize = 11.sp,
-                    color = MinimalDarkGray
-                )
+                // Toggle notification saving directly in Hub
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (isHistoryEnabled) MinimalDarkCardBg else MinimalDarkCardBg.copy(alpha = 0.5f))
+                        .border(
+                            0.5.dp,
+                            if (isHistoryEnabled) MinimalRed.copy(alpha = 0.6f) else MinimalDarkGray,
+                            RoundedCornerShape(6.dp)
+                        )
+                        .clickable {
+                            scope.launch {
+                                prefs.setNotificationHistoryEnabled(!isHistoryEnabled)
+                            }
+                        }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(if (isHistoryEnabled) MinimalRed else MinimalDarkGray)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (isHistoryEnabled) "SAVE: ON" else "SAVE: OFF",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
+                        color = if (isHistoryEnabled) MinimalWhite else MinimalGray
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -470,7 +501,24 @@ fun HubScreen(
                             .padding(vertical = 4.dp, horizontal = 4.dp)
                     )
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    // Direct Download to device (.txt)
+                    Text(
+                        text = "download",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MinimalWhite,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable {
+                                val itemsToExport = if (filteredList.isNotEmpty()) filteredList else activeSource
+                                NotificationExporter.downloadToDevice(context, itemsToExport)
+                            }
+                            .padding(vertical = 4.dp, horizontal = 4.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(10.dp))
 
                     // Clear button
                     if (filteredList.isNotEmpty()) {
@@ -652,7 +700,47 @@ fun HubScreen(
                         }
                     }
 
-                    // Option 3: Copy to clipboard
+                    // Option 3: Download to Device (.txt)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MinimalDarkCardBg)
+                            .clickable {
+                                showExportSheet = false
+                                val itemsToExport = if (filteredList.isNotEmpty()) filteredList else activeSource
+                                NotificationExporter.downloadToDevice(
+                                    context = context,
+                                    items = itemsToExport,
+                                    forAssistant = false
+                                )
+                            }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Download,
+                            contentDescription = null,
+                            tint = MinimalWhite,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "download .txt to device",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MinimalWhite
+                            )
+                            Text(
+                                text = "saves archive directly to system Downloads folder",
+                                fontSize = 11.sp,
+                                color = MinimalGray
+                            )
+                        }
+                    }
+
+                    // Option 4: Copy to clipboard
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -688,6 +776,50 @@ fun HubScreen(
                                 text = "copy formatted text directly to clipboard",
                                 fontSize = 11.sp,
                                 color = MinimalGray
+                            )
+                        }
+                    }
+
+                    // Notification saving toggle option inside sheet
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MinimalDarkCardBg.copy(alpha = 0.5f))
+                            .clickable {
+                                scope.launch {
+                                    prefs.setNotificationHistoryEnabled(!isHistoryEnabled)
+                                }
+                            }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "notification archive saving",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MinimalWhite
+                            )
+                            Text(
+                                text = if (isHistoryEnabled) "saving active · tap to turn off" else "saving paused · tap to turn on",
+                                fontSize = 10.sp,
+                                color = MinimalGray
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(if (isHistoryEnabled) MinimalRed else MinimalDarkCardBg)
+                                .border(0.5.dp, if (isHistoryEnabled) MinimalRed else MinimalDarkGray, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = if (isHistoryEnabled) "ENABLED" else "DISABLED",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isHistoryEnabled) MinimalWhite else MinimalGray
                             )
                         }
                     }

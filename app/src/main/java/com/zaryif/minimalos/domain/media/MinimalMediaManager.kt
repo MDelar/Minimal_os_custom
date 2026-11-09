@@ -245,14 +245,16 @@ object MinimalMediaManager {
     }
 
     fun openPlayer(context: Context) {
-        val pkg = activeController?.packageName
-        if (!pkg.isNullOrBlank()) {
-            val intent = context.packageManager.getLaunchIntentForPackage(pkg)
-            if (intent != null) {
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                context.startActivity(intent)
+        try {
+            val pkg = activeController?.packageName
+            if (!pkg.isNullOrBlank()) {
+                val intent = context.packageManager.getLaunchIntentForPackage(pkg)
+                if (intent != null) {
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    context.startActivity(intent)
+                }
             }
-        }
+        } catch (_: Exception) {}
     }
 
     fun cleanup() {

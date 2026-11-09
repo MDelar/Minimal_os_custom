@@ -19,7 +19,10 @@ import com.zaryif.minimalos.domain.model.CommandType
 import com.zaryif.minimalos.domain.parser.CommandParser
 import com.zaryif.minimalos.domain.parser.NaturalDateTimeParser
 import com.zaryif.minimalos.domain.timer.PomodoroTimerManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.Calendar
 import java.util.Locale
@@ -316,7 +319,7 @@ class ExecuteCommandUseCase(
         if (arg.isBlank()) {
             return CommandResult.OpenQuickNote()
         }
-        kotlinx.coroutines.runBlocking {
+        CoroutineScope(Dispatchers.IO).launch {
             userPreferences.setQuickNote(arg)
         }
         com.zaryif.minimalos.domain.quicknote.QuickNoteManager.postNotification(context, arg)

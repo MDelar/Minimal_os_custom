@@ -16,8 +16,8 @@ android {
         applicationId = "com.minimal.os"
         minSdk = 26
         targetSdk = 36
-        versionCode = 28
-        versionName = "1.9.7"
+        versionCode = 29
+        versionName = "1.9.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

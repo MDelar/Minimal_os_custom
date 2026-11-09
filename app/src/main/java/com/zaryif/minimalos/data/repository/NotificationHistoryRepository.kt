@@ -77,6 +77,52 @@ class NotificationHistoryRepository(context: Context) {
         }
     }
 
+    fun saveNotifications(items: List<NotificationItem>) {
+        if (items.isEmpty()) return
+        scope.launch {
+            try {
+                val db = dbHelper.writableDatabase
+                db.beginTransaction()
+                try {
+                    for (item in items) {
+                        if (item.title.isBlank() && item.content.isBlank()) continue
+                        val safeKey = item.key.ifBlank { "${item.packageName}_${item.id}_${item.timestamp}" }
+                        val values = ContentValues().apply {
+                            put(COLUMN_KEY, safeKey)
+                            put(COLUMN_PACKAGE, item.packageName)
+                            put(COLUMN_APP_NAME, item.appName)
+                            put(COLUMN_TITLE, item.title)
+                            put(COLUMN_CONTENT, item.content)
+                            put(COLUMN_CATEGORY, item.category.name)
+                            put(COLUMN_TIMESTAMP, item.timestamp)
+                            put(COLUMN_FLAGGED, if (item.isFlagged) 1 else 0)
+                        }
+                        db.insertWithOnConflict(
+                            TABLE_NOTIFICATIONS,
+                            null,
+                            values,
+                            SQLiteDatabase.CONFLICT_REPLACE
+                        )
+                    }
+                    db.execSQL(
+                        """
+                        DELETE FROM $TABLE_NOTIFICATIONS 
+                        WHERE $COLUMN_ID NOT IN (
+                            SELECT $COLUMN_ID FROM $TABLE_NOTIFICATIONS 
+                            ORDER BY $COLUMN_TIMESTAMP DESC 
+                            LIMIT 1000
+                        )
+                        """.trimIndent()
+                    )
+                    db.setTransactionSuccessful()
+                } finally {
+                    db.endTransaction()
+                }
+                _history.value = queryNotifications(category = NotificationCategory.ALL, query = "", limit = 300)
+            } catch (_: Exception) {}
+        }
+    }
+
     fun deleteNotification(key: String) {
         scope.launch {
             try {

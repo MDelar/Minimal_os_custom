@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -143,6 +144,7 @@ fun SettingsScreen(
     val customCommands by userPreferences.customCommands.collectAsState(initial = emptyMap())
     val commandHistoryEnabled by userPreferences.commandHistoryEnabled.collectAsState(initial = true)
     val commandHistory by userPreferences.commandHistory.collectAsState(initial = emptyList())
+    val notificationHistoryEnabled by userPreferences.notificationHistoryEnabled.collectAsState(initial = true)
     val showAllTodosPref by userPreferences.homeShowAllTodos.collectAsState(initial = false)
     val showAllNotesPref by userPreferences.homeShowAllNotes.collectAsState(initial = false)
     val homeSystemWidgets by userPreferences.homeSystemWidgets.collectAsState(initial = emptySet())
@@ -1391,6 +1393,57 @@ fun SettingsScreen(
                         onClick = {
                             val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                             context.startActivity(intent)
+                        }
+                    )
+
+                    SettingsInsetDivider()
+
+                    // Item 4: Save Notification History Toggle
+                    SettingsItemRow(
+                        icon = Icons.Default.History,
+                        title = "Save Notification History",
+                        subtitle = if (notificationHistoryEnabled) "Archive incoming alerts locally for Hub and AI export" else "Notification archiving is disabled",
+                        trailingContent = {
+                            Switch(
+                                checked = notificationHistoryEnabled,
+                                onCheckedChange = { isChecked ->
+                                    scope.launch {
+                                        userPreferences.setNotificationHistoryEnabled(isChecked)
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MinimalOnAccent,
+                                    checkedTrackColor = MinimalRed,
+                                    uncheckedThumbColor = MinimalGray,
+                                    uncheckedTrackColor = MinimalDarkCardBg
+                                )
+                            )
+                        },
+                        onClick = {
+                            scope.launch {
+                                userPreferences.setNotificationHistoryEnabled(!notificationHistoryEnabled)
+                            }
+                        }
+                    )
+
+                    SettingsInsetDivider()
+
+                    // Item 5: Download Notification History (.txt)
+                    SettingsItemRow(
+                        icon = Icons.Default.Download,
+                        title = "Download Notification History (.txt)",
+                        subtitle = "Export stored alerts directly to your Downloads folder",
+                        trailingContent = {
+                            Icon(
+                                imageVector = Icons.Default.Download,
+                                contentDescription = null,
+                                tint = MinimalRed,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        onClick = {
+                            val items = com.zaryif.minimalos.data.repository.NotificationHistoryRepository.getInstance(context).history.value
+                            com.zaryif.minimalos.util.NotificationExporter.downloadToDevice(context, items)
                         }
                     )
                 }

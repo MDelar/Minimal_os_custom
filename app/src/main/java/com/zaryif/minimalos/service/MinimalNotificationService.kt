@@ -5,19 +5,29 @@ import android.content.Context
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationManagerCompat
+import com.zaryif.minimalos.data.preferences.UserPreferences
 import com.zaryif.minimalos.data.repository.NotificationHistoryRepository
 import com.zaryif.minimalos.domain.media.MinimalMediaManager
 import com.zaryif.minimalos.domain.model.NotificationCategory
 import com.zaryif.minimalos.domain.model.NotificationItem
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MinimalNotificationService : NotificationListenerService() {
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private lateinit var userPreferences: UserPreferences
 
     override fun onCreate() {
         super.onCreate()
         instance = this
+        userPreferences = UserPreferences(this)
         MinimalMediaManager.init(this)
     }
 
@@ -76,8 +86,12 @@ class MinimalNotificationService : NotificationListenerService() {
         val current = _notifications.value.filterNot { it.key == sbn.key }
         _notifications.value = listOf(item) + current
 
-        // Persist notification locally so history is never lost
-        NotificationHistoryRepository.getInstance(this).saveNotification(item)
+        // Persist notification locally so history is never lost (if enabled by user)
+        serviceScope.launch {
+            if (userPreferences.notificationHistoryEnabled.first()) {
+                NotificationHistoryRepository.getInstance(this@MinimalNotificationService).saveNotification(item)
+            }
+        }
     }
 
     private fun removeNotification(key: String) {
@@ -117,9 +131,14 @@ class MinimalNotificationService : NotificationListenerService() {
                     pendingIntent = sbn.notification.contentIntent
                 )
                 list.add(item)
-                historyRepo.saveNotification(item)
             }
             _notifications.value = list.sortedByDescending { it.timestamp }
+
+            serviceScope.launch {
+                if (userPreferences.notificationHistoryEnabled.first()) {
+                    historyRepo.saveNotifications(list)
+                }
+            }
         } catch (_: Exception) {}
     }
 
