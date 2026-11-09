@@ -16,7 +16,7 @@
 
 *Type to do things. One hub for everything. Zero visual noise.*
 
-[Download Latest APK (v1.9.8)](https://github.com/zaryif/Minimal_os/releases/latest) • [Visual Showcase](#visual-overview) • [Core Features](#core-features) • [Text Graphics & Architecture](#text-graphics--feature-architectures) • [Installation](#installation--setup) • [Architecture](#architecture--tech-stack)
+[Download Latest APK (v1.9.8)](https://github.com/zaryif/Minimal_os/releases/latest) • [Interactive GIF Demos](showcase/README.md) • [Visual Showcase](#visual-overview) • [Core Features](#core-features) • [Text Graphics & Architecture](#text-graphics--feature-architectures) • [Installation](#installation--setup) • [Architecture](#architecture--tech-stack)
 
 <br/>
 
@@ -27,6 +27,8 @@
 ---
 
 ## Visual Overview
+
+> 🎬 **Looking for real animated demonstrations?** Check out the [Interactive GIF Showcase & Real Tasks Walkthrough](showcase/README.md) featuring live Quick Note notification bar pinning, Pomodoro focus sprints, and Notification Hub AI exports!
 
 ### 📱 Real Phone Showcase Gallery
 
