@@ -110,3 +110,4 @@ Swipe Right from Home Screen ──► Hub ──► [DOWNLOAD] or [AI EXPORT]
 - **Pomodoro Focus Sprint GIF (50 KB)**: [`02_pomodoro_focus_sprint.gif`](gifs/02_pomodoro_focus_sprint.gif)
 - **Notification Hub & AI GIF (104 KB)**: [`03_notification_hub_ai_and_download.gif`](gifs/03_notification_hub_ai_and_download.gif)
 - **Master Workflow Graphic (112 KB)**: [`real_tasks_workflow_showcase.png`](graphics/real_tasks_workflow_showcase.png)
+

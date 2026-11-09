@@ -159,3 +159,4 @@ def generate_dock_showcase(output_path):
 if __name__ == "__main__":
     out_path = os.path.join(BRAND_DIR, "icon_context_dock_mockups.png")
     generate_dock_showcase(out_path)
+
