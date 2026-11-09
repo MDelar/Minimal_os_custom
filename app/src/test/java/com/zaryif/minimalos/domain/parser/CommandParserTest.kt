@@ -62,6 +62,14 @@ class CommandParserTest {
 
         val help = CommandParser.parse("help")
         assertEquals(CommandType.HELP, help.type)
+
+        val qn = CommandParser.parse("qn Buy groceries")
+        assertEquals(CommandType.QUICK_NOTE, qn.type)
+        assertEquals("Buy groceries", qn.argument)
+
+        val quicknote = CommandParser.parse("quicknote")
+        assertEquals(CommandType.QUICK_NOTE, quicknote.type)
+        assertEquals("", quicknote.argument)
     }
 
     @Test

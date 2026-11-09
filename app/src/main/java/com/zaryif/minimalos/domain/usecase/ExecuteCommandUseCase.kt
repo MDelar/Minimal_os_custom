@@ -30,6 +30,7 @@ sealed class CommandResult {
     data class Success(val message: String) : CommandResult()
     data class LaunchedApp(val appName: String) : CommandResult()
     data class ShowHelp(val commands: List<Pair<String, String>>) : CommandResult()
+    data class OpenQuickNote(val initialText: String? = null) : CommandResult()
     data class Error(val error: String) : CommandResult()
 }
 
@@ -90,6 +91,7 @@ class ExecuteCommandUseCase(
             CommandType.UNINSTALL -> handleUninstall(command.argument)
             CommandType.PIN -> handlePin(command.argument)
             CommandType.UNPIN -> handleUnpin(command.argument)
+            CommandType.QUICK_NOTE -> handleQuickNote(command.argument)
             CommandType.DRIVE -> handleDrive(command.argument)
             CommandType.EMAIL -> handleEmail(command.argument)
             CommandType.HELP -> handleHelp()
@@ -308,6 +310,17 @@ class ExecuteCommandUseCase(
         }
 
         return CommandResult.Success("Saved note: $arg")
+    }
+
+    private fun handleQuickNote(arg: String): CommandResult {
+        if (arg.isBlank()) {
+            return CommandResult.OpenQuickNote()
+        }
+        kotlinx.coroutines.runBlocking {
+            userPreferences.setQuickNote(arg)
+        }
+        com.zaryif.minimalos.domain.quicknote.QuickNoteManager.postNotification(context, arg)
+        return CommandResult.Success("Pinned to notification bar: $arg")
     }
 
     /**

@@ -187,7 +187,9 @@ fun SettingsScreen(
         if (uri != null) {
             scope.launch(Dispatchers.IO) {
                 try {
-                    val file = File(context.filesDir, "custom_wallpaper_${System.currentTimeMillis()}.jpg")
+                    // Clean up any legacy wallpaper files to avoid storage leakage
+                    context.filesDir.listFiles { f -> f.name.startsWith("custom_wallpaper") }?.forEach { it.delete() }
+                    val file = File(context.filesDir, "custom_wallpaper.jpg")
                     context.contentResolver.openInputStream(uri)?.use { input ->
                         file.outputStream().use { output ->
                             input.copyTo(output)
@@ -695,6 +697,7 @@ fun SettingsScreen(
 
                     // Item 2: Home Widgets Layout & Order
                     val allHomeWidgetOptions = listOf(
+                        Pair("QUICK_NOTE", "quick note (pinned scratchpad in notification bar)"),
                         Pair("TODOS", "tasks (active focus tasks)"),
                         Pair("NOTES", "notes (recent memos)"),
                         Pair("CALENDAR", "calendar (glance & schedule)"),
@@ -904,6 +907,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val allDeckWidgetOptions = listOf(
+                    Pair("QUICK_NOTE", "quick note (pinned scratchpad)"),
                     Pair("NOTES", "notes card"),
                     Pair("TODOS", "tasks card"),
                     Pair("CALENDAR", "schedule & events card"),

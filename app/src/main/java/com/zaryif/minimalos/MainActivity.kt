@@ -41,6 +41,7 @@ import com.zaryif.minimalos.data.preferences.UserPreferences
 import com.zaryif.minimalos.data.repository.AppRepository
 import com.zaryif.minimalos.data.repository.ContactRepository
 import com.zaryif.minimalos.data.repository.StorageRepository
+import com.zaryif.minimalos.domain.quicknote.QuickNoteManager
 import com.zaryif.minimalos.domain.usecase.ExecuteCommandUseCase
 import com.zaryif.minimalos.ui.apps.AppDrawerScreen
 import com.zaryif.minimalos.ui.components.MinimalClockSheet
@@ -170,6 +171,14 @@ class MainActivity : ComponentActivity() {
             userPreferences
         )
 
+        lifecycleScope.launch {
+            val note = userPreferences.quickNote.first()
+            val isPinned = userPreferences.quickNotePinned.first()
+            if (note.isNotBlank() && isPinned) {
+                QuickNoteManager.postNotification(this@MainActivity, note)
+            }
+        }
+
         setContent {
             val themeId by userPreferences.themeId.collectAsState(initial = "AMOLED_RED")
             MinimalOSTheme(themeId = themeId) {
@@ -193,6 +202,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     override fun onStart() {
@@ -249,7 +263,15 @@ fun MinimalAppContent(
 
     var currentScreen by remember { mutableStateOf<ScreenState?>(null) }
 
-    // First time launch: onboardingCompleted is false in DataStore -> opens ONBOARDING
+    // First time launch: while DataStore loads initial value, show neutral black to prevent Home flash
+    if (onboardingCompleted == null && currentScreen == null) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = com.zaryif.minimalos.ui.theme.MinimalBlack
+        ) {}
+        return
+    }
+
     val activeScreen = currentScreen ?: when (onboardingCompleted) {
         false -> ScreenState.ONBOARDING
         true -> ScreenState.HOME
@@ -296,14 +318,14 @@ fun MinimalAppContent(
                     (slideInHorizontally(tween(180)) { it / 6 } + fadeIn(tween(180)))
                         .togetherWith(slideOutHorizontally(tween(180, easing = FastOutLinearInEasing)) { -it / 4 } + fadeOut(tween(180)))
                 }
-                // Navigating to/from HUB: slide from top
+                // Navigating to/from HUB: horizontal slide like widgets deck
                 targetState == ScreenState.HUB -> {
-                    (slideInVertically(spring(dampingRatio = 0.85f, stiffness = 500f)) { -it / 4 } + fadeIn(tween(200)))
-                        .togetherWith(fadeOut(tween(140)))
+                    (slideInHorizontally(spring(dampingRatio = 0.85f, stiffness = 500f)) { -it / 4 } + fadeIn(tween(200)))
+                        .togetherWith(slideOutHorizontally(tween(160)) { it / 6 } + fadeOut(tween(160)))
                 }
                 initialState == ScreenState.HUB -> {
-                    fadeIn(tween(150))
-                        .togetherWith(slideOutVertically(tween(180, easing = FastOutLinearInEasing)) { -it / 4 } + fadeOut(tween(180)))
+                    (slideInHorizontally(tween(180)) { it / 6 } + fadeIn(tween(180)))
+                        .togetherWith(slideOutHorizontally(tween(180, easing = FastOutLinearInEasing)) { -it / 4 } + fadeOut(tween(180)))
                 }
                 else -> {
                     fadeIn(tween(220)).togetherWith(fadeOut(tween(180)))
@@ -372,6 +394,7 @@ fun MinimalAppContent(
 
             ScreenState.HUB -> {
                 HubScreen(
+                    userPreferences = userPreferences,
                     onBackToHome = { currentScreen = ScreenState.HOME }
                 )
             }

@@ -20,7 +20,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,8 +44,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -65,6 +68,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,6 +79,7 @@ import com.zaryif.minimalos.data.repository.ContactRepository
 import com.zaryif.minimalos.data.repository.StorageRepository
 import com.zaryif.minimalos.domain.model.AppInfo
 import com.zaryif.minimalos.domain.model.Contact
+import com.zaryif.minimalos.domain.quicknote.QuickNoteManager
 import com.zaryif.minimalos.domain.usecase.CommandResult
 import com.zaryif.minimalos.domain.usecase.ExecuteCommandUseCase
 import com.zaryif.minimalos.ui.components.CommandBar
@@ -83,7 +88,10 @@ import com.zaryif.minimalos.ui.components.CommandHistoryChatStream
 import com.zaryif.minimalos.ui.components.MinimalDynamicHomeWidgets
 import com.zaryif.minimalos.ui.components.MinimalLiveTimerCard
 import com.zaryif.minimalos.ui.components.MinimalNotificationBanner
+import com.zaryif.minimalos.ui.components.MinimalQuickNoteBlackSpaceSheet
 import com.zaryif.minimalos.ui.theme.MinimalBlack
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.zaryif.minimalos.ui.theme.MinimalCardBg
 import com.zaryif.minimalos.ui.theme.MinimalDarkCardBg
 import com.zaryif.minimalos.ui.theme.MinimalDarkGray
@@ -131,10 +139,12 @@ fun HomeScreen(
     val commandHistoryEnabled by userPreferences.commandHistoryEnabled.collectAsState(initial = true)
     val commandHistory by userPreferences.commandHistory.collectAsState(initial = emptyList())
     val customCommands by userPreferences.customCommands.collectAsState(initial = emptyMap())
+    val quickNote by userPreferences.quickNote.collectAsState(initial = "")
 
     val scope = rememberCoroutineScope()
     var notificationMessage by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
+    var showQuickNoteSheet by remember { mutableStateOf(false) }
     var matchingApps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
     var matchingContacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
     var showHelpDialog by remember { mutableStateOf(false) }
@@ -151,6 +161,14 @@ fun HomeScreen(
 
     val favoriteApps = remember(favoriteAppPackages, installedApps) {
         installedApps.filter { it.packageName in favoriteAppPackages }
+    }
+
+    LaunchedEffect(Unit) {
+        val activity = context as? android.app.Activity
+        if (activity?.intent?.getBooleanExtra(QuickNoteManager.EXTRA_OPEN_QUICK_NOTE, false) == true) {
+            showQuickNoteSheet = true
+            activity.intent?.removeExtra(QuickNoteManager.EXTRA_OPEN_QUICK_NOTE)
+        }
     }
 
     // Live clock
@@ -191,7 +209,9 @@ fun HomeScreen(
                 else -> ""
             }
             if (hasContactPermission) {
-                contactRepository.searchContacts(contactQuery)
+                withContext(Dispatchers.IO) {
+                    contactRepository.searchContacts(contactQuery)
+                }
             } else {
                 emptyList()
             }
@@ -355,8 +375,18 @@ fun HomeScreen(
                                 BitmapFactory.decodeFile(file.absolutePath, decodeOpts)
                             } else {
                                 val uri = Uri.parse(path)
+                                val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                                 context.contentResolver.openInputStream(uri)?.use { stream ->
-                                    BitmapFactory.decodeStream(stream)
+                                    BitmapFactory.decodeStream(stream, null, opts)
+                                }
+                                var sampleSize = 1
+                                val maxDim = 2048
+                                while (opts.outWidth / sampleSize > maxDim || opts.outHeight / sampleSize > maxDim) {
+                                    sampleSize *= 2
+                                }
+                                val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                                context.contentResolver.openInputStream(uri)?.use { stream ->
+                                    BitmapFactory.decodeStream(stream, null, decodeOpts)
                                 }
                             }
                         } catch (_: Exception) {
@@ -387,13 +417,11 @@ fun HomeScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .pointerInput(Unit) {
-                    detectDragGestures { _, dragAmount ->
-                        val (x, y) = dragAmount
+                    detectHorizontalDragGestures { _, dragAmount ->
                         if (!isTyping) {
-                            // Clear horizontal swipes for Hub / Widgets Deck
-                            if (x > 50 && kotlin.math.abs(x) > kotlin.math.abs(y) * 1.5f) {
+                            if (dragAmount > 30) {
                                 onNavigateToHub()
-                            } else if (x < -50 && kotlin.math.abs(x) > kotlin.math.abs(y) * 1.5f) {
+                            } else if (dragAmount < -30) {
                                 onNavigateToWidgets()
                             }
                         }
@@ -443,6 +471,14 @@ fun HomeScreen(
                                 contentDescription = "Memo",
                                 tint = MinimalGray,
                                 modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        IconButton(onClick = { showQuickNoteSheet = true }, modifier = Modifier.size(36.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.PushPin,
+                                contentDescription = "Quick Note",
+                                tint = if (quickNote.isNotBlank()) MinimalRed else MinimalGray,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                         IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(36.dp)) {
@@ -534,9 +570,22 @@ fun HomeScreen(
                                 },
                                 onOpenClock = onOpenClock,
                                 onLaunchApp = { app ->
-                                    val intent = context.packageManager.getLaunchIntentForPackage(app.packageName)
-                                    intent?.let { context.startActivity(it) }
+                                    try {
+                                        val intent = context.packageManager.getLaunchIntentForPackage(app.packageName)
+                                        intent?.let { context.startActivity(it) }
+                                    } catch (_: Exception) {}
                                 },
+                                quickNoteText = quickNote,
+                                onQuickNoteChange = { text ->
+                                    scope.launch { userPreferences.setQuickNote(text) }
+                                },
+                                onClearQuickNote = {
+                                    scope.launch {
+                                        userPreferences.setQuickNote("")
+                                        QuickNoteManager.cancelNotification(context)
+                                    }
+                                },
+                                onOpenQuickNote = { showQuickNoteSheet = true },
                                 onAddHomeWidget = onAddHomeWidget,
                                 onDeleteHomeWidget = onDeleteHomeWidget
                             )
@@ -554,10 +603,62 @@ fun HomeScreen(
                                 userPreferences.clearCommandHistory()
                             }
                         },
+                        onToggleVisibility = {
+                            scope.launch {
+                                userPreferences.setCommandHistoryEnabled(false)
+                            }
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    Spacer(modifier = Modifier.fillMaxSize())
+                    // Terminal buffer is hidden: show a minimal compact bar with SHOW toggle
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 4.dp, vertical = 6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MinimalDarkCardBg.copy(alpha = 0.5f))
+                                .border(1.dp, MinimalDarkGray.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .clickable {
+                                    scope.launch {
+                                        userPreferences.setCommandHistoryEnabled(true)
+                                    }
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Terminal,
+                                    contentDescription = null,
+                                    tint = MinimalDarkGray,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "TERMINAL BUFFER HIDDEN",
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = MinimalDarkGray,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                            Text(
+                                text = "SHOW",
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = MinimalRed,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
 
@@ -566,9 +667,8 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .pointerInput(Unit) {
-                        detectDragGestures { _, dragAmount ->
-                            val (x, y) = dragAmount
-                            if (!isTyping && y < -30 && kotlin.math.abs(y) > kotlin.math.abs(x)) {
+                        detectVerticalDragGestures { _, dragAmount ->
+                            if (!isTyping && dragAmount < -30) {
                                 onNavigateToApps()
                             }
                         }
@@ -633,11 +733,16 @@ fun HomeScreen(
                                     it.startsWith("pin") || it.startsWith("unpin") ||
                                     it.startsWith("fav") || it.startsWith("unfav") ||
                                     it.startsWith("uninstall") || it.startsWith("remove") ||
-                                    it.startsWith("alias") || it.startsWith("unalias")
+                                    it.startsWith("alias") || it.startsWith("unalias") ||
+                                    it.startsWith("qn") || it.startsWith("quicknote")
                                 }
                                 if (showCommandFeedback || isAlwaysFeedback) {
                                     notificationMessage = result.message
                                 }
+                            }
+                            is CommandResult.OpenQuickNote -> {
+                                query = ""
+                                showQuickNoteSheet = true
                             }
                             is CommandResult.LaunchedApp -> {
                                 query = ""
@@ -702,6 +807,11 @@ fun HomeScreen(
                     },
                     commandHistory = commandHistory,
                     isHistoryEnabled = commandHistoryEnabled,
+                    onToggleHistoryEnabled = {
+                        scope.launch {
+                            userPreferences.setCommandHistoryEnabled(!commandHistoryEnabled)
+                        }
+                    },
                     customAliases = customCommands.keys,
                     hasContactPermission = hasContactPermission,
                     onRequestContactPermission = {
@@ -725,6 +835,23 @@ fun HomeScreen(
                 onSelectExample = { example ->
                     query = example
                 }
+            )
+        }
+
+        // Dedicated Distraction-Free Quick Note Black Space Sheet
+        if (showQuickNoteSheet) {
+            MinimalQuickNoteBlackSpaceSheet(
+                quickNoteText = quickNote,
+                onNoteChange = { newText ->
+                    scope.launch { userPreferences.setQuickNote(newText) }
+                },
+                onClear = {
+                    scope.launch {
+                        userPreferences.setQuickNote("")
+                        QuickNoteManager.cancelNotification(context)
+                    }
+                },
+                onDismiss = { showQuickNoteSheet = false }
             )
         }
     }

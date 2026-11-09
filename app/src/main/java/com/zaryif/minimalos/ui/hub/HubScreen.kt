@@ -1,12 +1,15 @@
 package com.zaryif.minimalos.ui.hub
 
+import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,49 +25,102 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zaryif.minimalos.data.preferences.UserPreferences
+import com.zaryif.minimalos.data.repository.NotificationHistoryRepository
+import com.zaryif.minimalos.domain.media.MediaTrackInfo
+import com.zaryif.minimalos.domain.media.MinimalMediaManager
 import com.zaryif.minimalos.domain.model.NotificationCategory
 import com.zaryif.minimalos.domain.model.NotificationItem
 import com.zaryif.minimalos.service.MinimalNotificationService
-import com.zaryif.minimalos.ui.components.ButtonStyle
-import com.zaryif.minimalos.ui.components.MinimalButton
 import com.zaryif.minimalos.ui.components.MinimalCard
 import com.zaryif.minimalos.ui.theme.MinimalBlack
+import com.zaryif.minimalos.ui.theme.MinimalCardBg
+import com.zaryif.minimalos.ui.theme.MinimalDarkCardBg
+import com.zaryif.minimalos.ui.theme.MinimalDarkGray
 import com.zaryif.minimalos.ui.theme.MinimalGray
 import com.zaryif.minimalos.ui.theme.MinimalRed
 import com.zaryif.minimalos.ui.theme.MinimalWhite
+import com.zaryif.minimalos.util.NotificationExporter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 @Composable
 fun HubScreen(
+    userPreferences: UserPreferences? = null,
     onBackToHome: () -> Unit
 ) {
     val context = LocalContext.current
-    val notifications by MinimalNotificationService.notifications.collectAsState()
+    val scope = rememberCoroutineScope()
+    val liveNotifications by MinimalNotificationService.notifications.collectAsState()
+    val historyRepo = remember { NotificationHistoryRepository.getInstance(context) }
+    val archivedNotifications by historyRepo.history.collectAsState()
+    val currentTrack by MinimalMediaManager.currentTrack.collectAsState()
+
+    var isArchiveMode by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(NotificationCategory.ALL) }
+    var searchQuery by remember { mutableStateOf("") }
+    var isSearchActive by remember { mutableStateOf(false) }
+
+    var showClearHistoryDialog by remember { mutableStateOf(false) }
+    var showExportSheet by remember { mutableStateOf(false) }
+
     val isPermissionGranted = remember { MinimalNotificationService.isPermissionGranted(context) }
+
+    // Refresh media on Hub entry
+    LaunchedEffect(Unit) {
+        MinimalMediaManager.refresh(context)
+        historyRepo.reloadHistory()
+    }
 
     val categories = listOf(
         NotificationCategory.ALL,
@@ -73,12 +129,22 @@ fun HubScreen(
         NotificationCategory.EMAIL
     )
 
-    val filteredList = remember(notifications, selectedCategory) {
-        if (selectedCategory == NotificationCategory.ALL) {
-            notifications
-        } else {
-            notifications.filter { it.category == selectedCategory }
+    // Filter current list (live or archive)
+    val activeSource = if (isArchiveMode) archivedNotifications else liveNotifications
+    val filteredList = remember(activeSource, selectedCategory, searchQuery) {
+        var list = activeSource
+        if (selectedCategory != NotificationCategory.ALL) {
+            list = list.filter { it.category == selectedCategory }
         }
+        if (searchQuery.isNotBlank()) {
+            val q = searchQuery.trim().lowercase()
+            list = list.filter {
+                it.title.lowercase().contains(q) ||
+                it.content.lowercase().contains(q) ||
+                it.appName.lowercase().contains(q)
+            }
+        }
+        list
     }
 
     Box(
@@ -96,45 +162,115 @@ fun HubScreen(
                     }
                 }
             }
-            .padding(horizontal = 24.dp, vertical = 20.dp)
+            .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header with back arrow
+            // Header with back arrow and quick action icons
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onBackToHome, modifier = Modifier.size(36.dp)) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back to home",
-                        tint = MinimalWhite,
-                        modifier = Modifier.size(20.dp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBackToHome, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back to home",
+                            tint = MinimalWhite,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "hub",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MinimalWhite
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "hub",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MinimalWhite
-                )
+
+                // Top right actions: Search toggle & Export / Assistant
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = {
+                            isSearchActive = !isSearchActive
+                            if (!isSearchActive) searchQuery = ""
+                        },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = "Search alerts",
+                            tint = if (isSearchActive) MinimalRed else MinimalWhite,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { showExportSheet = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "Send to AI / Export",
+                            tint = MinimalRed,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "messages, calls, and email alerts in one unified list, so\nthere's one place to look rather than nine.",
-                fontSize = 13.sp,
-                color = MinimalGray,
-                lineHeight = 18.sp
+                text = "live alerts · music playback · local notification archive",
+                fontSize = 12.sp,
+                color = MinimalGray
             )
+
+            // Inline Search Field
+            AnimatedVisibility(
+                visible = isSearchActive,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MinimalDarkCardBg)
+                        .border(1.dp, MinimalDarkGray, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        textStyle = TextStyle(
+                            color = MinimalWhite,
+                            fontSize = 13.sp
+                        ),
+                        cursorBrush = SolidColor(MinimalRed),
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { innerTextField ->
+                            if (searchQuery.isEmpty()) {
+                                Text(
+                                    text = "search alerts by app, title, or message...",
+                                    fontSize = 13.sp,
+                                    color = MinimalDarkGray
+                                )
+                            }
+                            innerTextField()
+                        }
+                    )
+                }
+            }
 
             // Permission status banner if listener service is disabled
             if (!isPermissionGranted) {
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 MinimalCard(
                     title = "notification access required",
-                    subtitle = "tap to grant system permission so Hub receives alerts live",
+                    subtitle = "tap to grant permission so Hub receives alerts live",
                     icon = Icons.Default.Warning,
                     iconColor = MinimalRed,
                     onClick = {
@@ -146,7 +282,68 @@ fun HubScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            // Live Music / Media Player Card ("music on off if music playing")
+            currentTrack?.let { track ->
+                Spacer(modifier = Modifier.height(14.dp))
+                MinimalNowPlayingCard(
+                    track = track,
+                    onTogglePlayPause = {
+                        MinimalMediaManager.togglePlayPause(context)
+                    },
+                    onNext = {
+                        MinimalMediaManager.skipToNext(context)
+                    },
+                    onPrev = {
+                        MinimalMediaManager.skipToPrevious(context)
+                    },
+                    onOpenApp = {
+                        MinimalMediaManager.openPlayer(context)
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Live vs Archive View Mode Switcher
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "LIVE (${liveNotifications.size})",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
+                        color = if (!isArchiveMode) MinimalWhite else MinimalDarkGray,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { isArchiveMode = false }
+                            .padding(vertical = 4.dp, horizontal = 4.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "ARCHIVE (${archivedNotifications.size})",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
+                        color = if (isArchiveMode) MinimalWhite else MinimalDarkGray,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { isArchiveMode = true }
+                            .padding(vertical = 4.dp, horizontal = 4.dp)
+                    )
+                }
+
+                Text(
+                    text = if (isArchiveMode) "local storage" else "active alerts",
+                    fontSize = 11.sp,
+                    color = MinimalDarkGray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Category Filter Tabs
             Row(
@@ -157,17 +354,17 @@ fun HubScreen(
                 categories.forEach { cat ->
                     val isSelected = cat == selectedCategory
                     val count = if (cat == NotificationCategory.ALL) {
-                        notifications.size
+                        activeSource.size
                     } else {
-                        notifications.count { it.category == cat }
+                        activeSource.count { it.category == cat }
                     }
 
                     Text(
                         text = if (count > 0) "${cat.displayName} ($count)" else cat.displayName,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp,
-                        color = if (isSelected) MinimalWhite else MinimalGray,
+                        color = if (isSelected) MinimalWhite else MinimalDarkGray,
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
                             .clickable { selectedCategory = cat }
@@ -176,26 +373,32 @@ fun HubScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Notifications List
             if (filteredList.isEmpty()) {
                 Box(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "no alerts in ${selectedCategory.displayName.lowercase()}",
-                        fontSize = 14.sp,
+                        text = if (searchQuery.isNotBlank()) "no alerts match \"$searchQuery\""
+                               else if (isArchiveMode) "no stored alerts in ${selectedCategory.displayName.lowercase()}"
+                               else "no active alerts in ${selectedCategory.displayName.lowercase()}",
+                        fontSize = 13.sp,
                         color = MinimalGray
                     )
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(filteredList, key = { it.key.ifEmpty { it.id.toString() } }) { item ->
+                    items(filteredList, key = { it.key.ifEmpty { "${it.id}_${it.timestamp}" } }) { item ->
                         val icon = when (item.category) {
                             NotificationCategory.MESSAGE -> Icons.Default.ChatBubbleOutline
                             NotificationCategory.CALLS -> Icons.Default.Phone
@@ -203,14 +406,18 @@ fun HubScreen(
                             else -> Icons.Default.NotificationsNone
                         }
 
-                        MinimalCard(
-                            title = item.title,
-                            subtitle = item.content,
+                        val timeDisplay = if (isArchiveMode) {
+                            formatFullTimestamp(item.timestamp)
+                        } else {
+                            formatRelativeTimestamp(item.timestamp)
+                        }
+
+                        MinimalHubNotificationCard(
+                            item = item,
                             icon = icon,
-                            iconColor = MinimalRed,
-                            trailingText = formatTimestamp(item.timestamp),
-                            onClick = {
-                                // Try dispatching the pending intent directly or launch app
+                            timeDisplay = timeDisplay,
+                            isArchive = isArchiveMode,
+                            onItemClick = {
                                 if (item.pendingIntent != null) {
                                     try {
                                         item.pendingIntent.send()
@@ -222,53 +429,519 @@ fun HubScreen(
                                     val launchIntent = context.packageManager.getLaunchIntentForPackage(item.packageName)
                                     launchIntent?.let { context.startActivity(it) }
                                 }
+                            },
+                            onDismiss = {
+                                if (isArchiveMode) {
+                                    historyRepo.deleteNotification(item.key)
+                                } else {
+                                    MinimalNotificationService.dismiss(item.key)
+                                }
+                            },
+                            onToggleStar = {
+                                if (isArchiveMode) {
+                                    historyRepo.toggleFlag(item.key)
+                                } else {
+                                    MinimalNotificationService.toggleFlag(item.key)
+                                }
                             }
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Clear All / Dismiss button
-            if (filteredList.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            // Bottom Actions: Send to Assistant / Export / Clear / Navigation Hint
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Send to Assistant / Export trigger
                     Text(
-                        text = "clear alerts",
+                        text = "ai export",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MinimalGray,
-                        modifier = Modifier.clickable {
-                            filteredList.forEach { MinimalNotificationService.dismiss(it.key) }
-                        }
+                        color = MinimalRed,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { showExportSheet = true }
+                            .padding(vertical = 4.dp, horizontal = 4.dp)
                     )
-                    Text(
-                        text = "← SWIPE LEFT FOR HOME",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        color = MinimalRed
-                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Clear button
+                    if (filteredList.isNotEmpty()) {
+                        Text(
+                            text = if (isArchiveMode) "clear archive" else "clear alerts",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MinimalGray,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable {
+                                    if (isArchiveMode) {
+                                        showClearHistoryDialog = true
+                                    } else {
+                                        filteredList.forEach { MinimalNotificationService.dismiss(it.key) }
+                                    }
+                                }
+                                .padding(vertical = 4.dp, horizontal = 4.dp)
+                        )
+                    }
                 }
-            } else {
+
                 Text(
                     text = "← SWIPE LEFT FOR HOME",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
-                    color = MinimalRed,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    color = MinimalRed
+                )
+            }
+        }
+    }
+
+    // Confirmation dialog for clearing archive
+    if (showClearHistoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearHistoryDialog = false },
+            title = {
+                Text(text = "clear notification archive?", color = MinimalWhite, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text(
+                    text = "this will permanently delete all stored local notifications from your device.",
+                    color = MinimalGray,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        historyRepo.clearHistory()
+                        showClearHistoryDialog = false
+                    }
+                ) {
+                    Text(text = "clear all", color = MinimalRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearHistoryDialog = false }) {
+                    Text(text = "cancel", color = MinimalWhite)
+                }
+            },
+            containerColor = MinimalCardBg
+        )
+    }
+
+    // AI Assistant & Export Options Dialog
+    if (showExportSheet) {
+        AlertDialog(
+            onDismissRequest = { showExportSheet = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = MinimalRed,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "hub intelligence & export",
+                        color = MinimalWhite,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp
+                    )
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "send your notification log to an AI assistant (Gemini/Claude/ChatGPT) to summarize key messages, or export as a .txt file:",
+                        color = MinimalGray,
+                        fontSize = 13.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Option 1: Send to Assistant
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MinimalDarkCardBg)
+                            .clickable {
+                                showExportSheet = false
+                                scope.launch {
+                                    val currentAssistant = userPreferences?.assistantPackage?.first()
+                                    val itemsToExport = if (filteredList.isNotEmpty()) filteredList else activeSource
+                                    NotificationExporter.shareExport(
+                                        context = context,
+                                        items = itemsToExport,
+                                        forAssistant = true,
+                                        assistantPackage = currentAssistant
+                                    )
+                                }
+                            }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = MinimalRed,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "send to ai assistant",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MinimalWhite
+                            )
+                            Text(
+                                text = "creates prompt with .txt log to summarize urgent tasks",
+                                fontSize = 11.sp,
+                                color = MinimalGray
+                            )
+                        }
+                    }
+
+                    // Option 2: Export raw .txt file
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MinimalDarkCardBg)
+                            .clickable {
+                                showExportSheet = false
+                                val itemsToExport = if (filteredList.isNotEmpty()) filteredList else activeSource
+                                NotificationExporter.shareExport(
+                                    context = context,
+                                    items = itemsToExport,
+                                    forAssistant = false
+                                )
+                            }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = null,
+                            tint = MinimalWhite,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "export .txt log",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MinimalWhite
+                            )
+                            Text(
+                                text = "share or save plain text archive file",
+                                fontSize = 11.sp,
+                                color = MinimalGray
+                            )
+                        }
+                    }
+
+                    // Option 3: Copy to clipboard
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MinimalDarkCardBg)
+                            .clickable {
+                                showExportSheet = false
+                                val itemsToExport = if (filteredList.isNotEmpty()) filteredList else activeSource
+                                NotificationExporter.copyToClipboard(
+                                    context = context,
+                                    items = itemsToExport,
+                                    forAssistant = true
+                                )
+                            }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = null,
+                            tint = MinimalWhite,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "copy ai prompt & log",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MinimalWhite
+                            )
+                            Text(
+                                text = "copy formatted text directly to clipboard",
+                                fontSize = 11.sp,
+                                color = MinimalGray
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showExportSheet = false }) {
+                    Text(text = "close", color = MinimalWhite)
+                }
+            },
+            containerColor = MinimalCardBg
+        )
+    }
+}
+
+@Composable
+private fun MinimalNowPlayingCard(
+    track: MediaTrackInfo,
+    onTogglePlayPause: () -> Unit,
+    onNext: () -> Unit,
+    onPrev: () -> Unit,
+    onOpenApp: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MinimalCardBg)
+            .border(1.dp, MinimalDarkGray, RoundedCornerShape(12.dp))
+            .padding(14.dp)
+    ) {
+        Column {
+            // Header: Status indicator and App label
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onOpenApp() }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = MinimalRed,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (track.isPlaying) "NOW PLAYING" else "PAUSED",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
+                        color = if (track.isPlaying) MinimalRed else MinimalGray
+                    )
+                }
+
+                Text(
+                    text = track.appName,
+                    fontSize = 11.sp,
+                    color = MinimalGray,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.clickable { onOpenApp() }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Track info
+            Text(
+                text = track.title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = MinimalWhite,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.clickable { onOpenApp() }
+            )
+
+            if (track.artist.isNotBlank()) {
+                Text(
+                    text = track.artist,
+                    fontSize = 12.sp,
+                    color = MinimalGray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.clickable { onOpenApp() }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Playback controls row: Prev, Play/Pause toggle, Next
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onPrev,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipPrevious,
+                        contentDescription = "Previous Track",
+                        tint = MinimalWhite,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(20.dp))
+
+                // Play / Pause tactile toggle ("music on off if music playing")
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(21.dp))
+                        .background(if (track.isPlaying) MinimalRed else MinimalDarkCardBg)
+                        .border(1.dp, if (track.isPlaying) MinimalRed else MinimalDarkGray, RoundedCornerShape(21.dp))
+                        .clickable { onTogglePlayPause() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (track.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (track.isPlaying) "Pause" else "Play",
+                        tint = MinimalWhite,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(20.dp))
+
+                IconButton(
+                    onClick = onNext,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Next Track",
+                        tint = MinimalWhite,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MinimalHubNotificationCard(
+    item: NotificationItem,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    timeDisplay: String,
+    isArchive: Boolean,
+    onItemClick: () -> Unit,
+    onDismiss: () -> Unit,
+    onToggleStar: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MinimalCardBg)
+            .border(1.dp, MinimalDarkGray, RoundedCornerShape(12.dp))
+            .clickable { onItemClick() }
+            .padding(14.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MinimalRed,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = item.appName,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MinimalGray
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = timeDisplay,
+                        fontSize = 11.sp,
+                        color = MinimalDarkGray
+                    )
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    // Star / Flag button
+                    Icon(
+                        imageVector = if (item.isFlagged) Icons.Default.Star else Icons.Default.StarBorder,
+                        contentDescription = if (item.isFlagged) "Unstar" else "Star",
+                        tint = if (item.isFlagged) MinimalRed else MinimalDarkGray,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clickable { onToggleStar() }
+                    )
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    // Dismiss / delete button
+                    Icon(
+                        imageVector = if (isArchive) Icons.Default.DeleteOutline else Icons.Default.Close,
+                        contentDescription = if (isArchive) "Delete from archive" else "Dismiss alert",
+                        tint = MinimalDarkGray,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clickable { onDismiss() }
+                    )
+                }
+            }
+
+            if (item.title.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = item.title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MinimalWhite,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            if (item.content.isNotBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = item.content,
+                    fontSize = 12.sp,
+                    color = MinimalGray,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp
                 )
             }
         }
     }
 }
 
-private fun formatTimestamp(timestamp: Long): String {
+private fun formatRelativeTimestamp(timestamp: Long): String {
     val diff = System.currentTimeMillis() - timestamp
     val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
     val hours = TimeUnit.MILLISECONDS.toHours(diff)
@@ -277,5 +950,21 @@ private fun formatTimestamp(timestamp: Long): String {
         minutes < 60 -> "${minutes}m"
         hours < 24 -> "${hours}h"
         else -> "${hours / 24}d"
+    }
+}
+
+private fun formatFullTimestamp(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    val days = TimeUnit.MILLISECONDS.toDays(diff)
+    return if (days == 0L) {
+        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+        "Today " + sdf.format(Date(timestamp))
+    } else if (days == 1L) {
+        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+        "Yesterday " + sdf.format(Date(timestamp))
+    } else {
+        val sdf = SimpleDateFormat("MMM d, HH:mm", Locale.getDefault())
+        sdf.format(Date(timestamp))
     }
 }

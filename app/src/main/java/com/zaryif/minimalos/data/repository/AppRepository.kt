@@ -23,7 +23,7 @@ class AppRepository(private val context: Context) {
                 AppInfo(
                     packageName = resolveInfo.activityInfo.packageName,
                     label = resolveInfo.loadLabel(pm).toString(),
-                    icon = resolveInfo.loadIcon(pm),
+                    icon = null,
                     isSystemApp = (appInfo?.flags?.and(ApplicationInfo.FLAG_SYSTEM) ?: 0) != 0
                 )
             }

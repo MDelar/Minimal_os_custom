@@ -45,9 +45,11 @@ class UserPreferences(private val context: Context) {
         private val POMODORO_WORK_MINUTES = intPreferencesKey("pomodoro_work_minutes")
         private val POMODORO_BREAK_MINUTES = intPreferencesKey("pomodoro_break_minutes")
         private val ASSISTANT_PACKAGE = stringPreferencesKey("assistant_package")
+        private val QUICK_NOTE = stringPreferencesKey("quick_note")
+        private val QUICK_NOTE_PINNED = booleanPreferencesKey("quick_note_pinned")
 
         val DEFAULT_HOME_WIDGETS = listOf("TODOS", "CALENDAR", "SHORTCUTS")
-        val DEFAULT_DECK_WIDGETS = listOf("NOTES", "TODOS", "CALENDAR", "POMODORO", "ALARMS", "ALIASES", "TIMERS", "SYSTEM_WIDGETS")
+        val DEFAULT_DECK_WIDGETS = listOf("QUICK_NOTE", "NOTES", "TODOS", "CALENDAR", "POMODORO", "ALARMS", "ALIASES", "TIMERS", "SYSTEM_WIDGETS")
     }
 
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data
@@ -279,6 +281,24 @@ class UserPreferences(private val context: Context) {
 
     val assistantPackage: Flow<String?> = context.dataStore.data
         .map { prefs -> prefs[ASSISTANT_PACKAGE] }
+
+    val quickNote: Flow<String> = context.dataStore.data
+        .map { prefs -> prefs[QUICK_NOTE] ?: "" }
+
+    val quickNotePinned: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[QUICK_NOTE_PINNED] ?: true }
+
+    suspend fun setQuickNote(note: String) {
+        context.dataStore.edit { prefs ->
+            prefs[QUICK_NOTE] = note
+        }
+    }
+
+    suspend fun setQuickNotePinned(pinned: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[QUICK_NOTE_PINNED] = pinned
+        }
+    }
 
     suspend fun setAssistantPackage(pkg: String?) {
         context.dataStore.edit { prefs ->

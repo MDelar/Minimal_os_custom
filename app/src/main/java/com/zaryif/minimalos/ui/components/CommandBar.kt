@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -95,6 +96,7 @@ private val BUILTIN_ACTION_KEYWORDS = setOf(
     "yt", "youtube",
     "uninstall", "remove", "rmapp",
     "pin", "fav", "unpin", "unfav",
+    "qn", "quicknote",
     "help", "commands", "man", "guide",
     "alias", "custom", "setalias", "unalias", "rmalias"
 )
@@ -110,6 +112,7 @@ fun CommandBar(
     onContactSelected: (Contact) -> Unit,
     commandHistory: List<String> = emptyList(),
     isHistoryEnabled: Boolean = true,
+    onToggleHistoryEnabled: (() -> Unit)? = null,
     customAliases: Set<String> = emptySet(),
     hasContactPermission: Boolean = true,
     onRequestContactPermission: (() -> Unit)? = null,
@@ -136,37 +139,8 @@ fun CommandBar(
 
     // 2. Built-in actions (TODO, NOTE, CALL, MESSAGE, WHATSAPP, ALARM, TIMER, EVENT, EMAIL, DRIVE, ASK, HELP)
     val isBuiltInAction = command.type != CommandType.SEARCH || hasPrefix ||
-            lower.let {
-                it == "todo" || it.startsWith("todo ") ||
-                it == "note" || it.startsWith("note ") ||
-                it == "notes" || it.startsWith("notes ") ||
-                it == "task" || it.startsWith("task ") ||
-                it == "memo" || it.startsWith("memo ") ||
-                it == "call" || it.startsWith("call ") ||
-                it == "dial" || it.startsWith("dial ") ||
-                it == "wa" || it.startsWith("wa ") ||
-                it == "whatsapp" || it.startsWith("whatsapp ") ||
-                it == "msg" || it.startsWith("msg ") ||
-                it == "sms" || it.startsWith("sms ") ||
-                it == "text" || it.startsWith("text ") ||
-                it == "message" || it.startsWith("message ") ||
-                it.startsWith("alarm ") || it.startsWith("set alarm ") ||
-                it == "timer" || it.startsWith("timer ") || it.startsWith("set timer ") ||
-                it == "pomodoro" || it.startsWith("pomodoro ") ||
-                it == "pomo" || it.startsWith("pomo ") ||
-                it.startsWith("event ") || it.startsWith("cal ") || it.startsWith("calendar ") || it.startsWith("schedule ") ||
-                it.startsWith("email ") || it.startsWith("mail ") ||
-                it.startsWith("drive ") ||
-                it == "assistant" || it.startsWith("assistant ") ||
-                it == "ai" || it.startsWith("ai ") ||
-                it == "yt" || it.startsWith("yt ") ||
-                it == "youtube" || it.startsWith("youtube ") ||
-                it == "uninstall" || it.startsWith("uninstall ") || it == "remove" || it.startsWith("remove ") || it == "rmapp" || it.startsWith("rmapp ") ||
-                it == "pin" || it.startsWith("pin ") || it == "fav" || it.startsWith("fav ") ||
-                it == "unpin" || it.startsWith("unpin ") || it == "unfav" || it.startsWith("unfav ") ||
-                it.startsWith("ask ") || it.startsWith("search ") || it.startsWith("google ") || it.startsWith("find ") ||
-                it == "help" || it.startsWith("help ") || it == "commands" || it == "man" || it == "guide"
-            }
+            firstToken in BUILTIN_ACTION_KEYWORDS ||
+            lower.startsWith("set alarm") || lower.startsWith("set timer")
 
     // Action detection
     val isActionTriggered = isBuiltInAction || isAliasCommand
@@ -658,9 +632,23 @@ fun CommandBar(
                     )
                 }
 
-                // Terminal history Up / Down cycling buttons
-                if (isHistoryEnabled && commandHistory.isNotEmpty()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                // Terminal history toggle & Up / Down cycling buttons
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (onToggleHistoryEnabled != null) {
+                        IconButton(
+                            onClick = onToggleHistoryEnabled,
+                            modifier = Modifier.size(26.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Terminal,
+                                contentDescription = if (isHistoryEnabled) "Hide Terminal History" else "Show Terminal History",
+                                tint = if (isHistoryEnabled) MinimalRed else MinimalDarkGray,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                    }
+
+                    if (isHistoryEnabled && commandHistory.isNotEmpty()) {
                         IconButton(
                             onClick = { navigateHistory(up = true) },
                             modifier = Modifier.size(26.dp),

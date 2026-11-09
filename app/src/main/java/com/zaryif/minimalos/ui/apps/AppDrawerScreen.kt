@@ -142,8 +142,10 @@ fun AppDrawerScreen(
                             onSearch = {
                                 if (filteredApps.isNotEmpty()) {
                                     val topApp = filteredApps.first()
-                                    val launchIntent = context.packageManager.getLaunchIntentForPackage(topApp.packageName)
-                                    launchIntent?.let { context.startActivity(it) }
+                                    try {
+                                        val launchIntent = context.packageManager.getLaunchIntentForPackage(topApp.packageName)
+                                        launchIntent?.let { context.startActivity(it) }
+                                    } catch (_: Exception) {}
                                 }
                             }
                         ),
@@ -224,8 +226,10 @@ fun AppDrawerScreen(
                                 interactionSource = interactionSource,
                                 indication = null,
                                 onClick = {
-                                    val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
-                                    launchIntent?.let { context.startActivity(it) }
+                                    try {
+                                        val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
+                                        launchIntent?.let { context.startActivity(it) }
+                                    } catch (_: Exception) {}
                                 },
                                 onLongClick = {
                                     selectedAppForOptions = app

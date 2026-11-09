@@ -5,6 +5,50 @@ import com.zaryif.minimalos.domain.model.CommandType
 
 object CommandParser {
 
+    private data class PrefixMapping(
+        val prefixes: List<String>,
+        val commandType: CommandType,
+        val requireSpace: Boolean = false
+    )
+
+    private val REDUNDANT_PREFIXES: Map<CommandType, List<String>> = mapOf(
+        CommandType.NOTE to listOf("note ", "notes ", "memo ", "keep "),
+        CommandType.TODO to listOf("todo ", "task ", "reminder ", "remind "),
+        CommandType.CALL to listOf("call ", "dial "),
+        CommandType.MESSAGE to listOf("msg ", "sms ", "text ", "message "),
+        CommandType.EVENT to listOf("event ", "cal ", "calendar ", "schedule "),
+        CommandType.ALARM to listOf("set alarm ", "alarm "),
+        CommandType.TIMER to listOf("set timer ", "timer "),
+        CommandType.DRIVE to listOf("drive "),
+        CommandType.EMAIL to listOf("mail ", "email "),
+        CommandType.WHATSAPP to listOf("whatsapp ", "wa "),
+        CommandType.ASK to listOf("assistant ", "ai ", "ask ", "search ", "google ", "find "),
+        CommandType.YOUTUBE to listOf("yt ", "youtube "),
+        CommandType.POMODORO to listOf("pomodoro ", "pomo "),
+        CommandType.UNINSTALL to listOf("uninstall ", "remove ", "rmapp "),
+        CommandType.HELP to listOf("help ", "commands ", "guide ")
+    )
+
+    private val KEYWORD_MATCHES = listOf(
+        PrefixMapping(listOf("set alarm", "alarm"), CommandType.ALARM, requireSpace = true),
+        PrefixMapping(listOf("set timer", "timer"), CommandType.TIMER, requireSpace = false),
+        PrefixMapping(listOf("pomodoro", "pomo"), CommandType.POMODORO, requireSpace = false),
+        PrefixMapping(listOf("yt", "youtube"), CommandType.YOUTUBE, requireSpace = false),
+        PrefixMapping(listOf("uninstall", "remove", "rmapp"), CommandType.UNINSTALL, requireSpace = false),
+        PrefixMapping(listOf("quicknote", "quick note", "qn"), CommandType.QUICK_NOTE, requireSpace = false),
+        PrefixMapping(listOf("pin", "fav"), CommandType.PIN, requireSpace = false),
+        PrefixMapping(listOf("unpin", "unfav"), CommandType.UNPIN, requireSpace = false),
+        PrefixMapping(listOf("call", "dial"), CommandType.CALL, requireSpace = false),
+        PrefixMapping(listOf("whatsapp", "wa"), CommandType.WHATSAPP, requireSpace = false),
+        PrefixMapping(listOf("msg", "sms", "text", "message"), CommandType.MESSAGE, requireSpace = false),
+        PrefixMapping(listOf("notes", "note", "keep", "memo"), CommandType.NOTE, requireSpace = false),
+        PrefixMapping(listOf("todo", "task", "reminder", "remind"), CommandType.TODO, requireSpace = false),
+        PrefixMapping(listOf("event", "cal", "calendar", "schedule"), CommandType.EVENT, requireSpace = true),
+        PrefixMapping(listOf("drive"), CommandType.DRIVE, requireSpace = true),
+        PrefixMapping(listOf("email", "mail"), CommandType.EMAIL, requireSpace = true),
+        PrefixMapping(listOf("assistant", "ai", "ask", "search", "google", "find"), CommandType.ASK, requireSpace = false)
+    )
+
     fun parse(input: String): Command {
         val trimmed = input.trim()
         if (trimmed.isEmpty()) {
@@ -20,24 +64,7 @@ object CommandParser {
         val symbolCommand = CommandType.fromSymbol(firstChar)
         if (symbolCommand != null) {
             var arg = trimmed.drop(1).trim()
-            val redundantPrefixes = when (symbolCommand) {
-                CommandType.NOTE -> listOf("note ", "notes ", "memo ", "keep ")
-                CommandType.TODO -> listOf("todo ", "task ", "reminder ", "remind ")
-                CommandType.CALL -> listOf("call ", "dial ")
-                CommandType.MESSAGE -> listOf("msg ", "sms ", "text ", "message ")
-                CommandType.EVENT -> listOf("event ", "cal ", "calendar ", "schedule ")
-                CommandType.ALARM -> listOf("set alarm ", "alarm ")
-                CommandType.TIMER -> listOf("set timer ", "timer ")
-                CommandType.DRIVE -> listOf("drive ")
-                CommandType.EMAIL -> listOf("mail ", "email ")
-                CommandType.WHATSAPP -> listOf("whatsapp ", "wa ")
-                CommandType.ASK -> listOf("assistant ", "ai ", "ask ", "search ", "google ", "find ")
-                CommandType.YOUTUBE -> listOf("yt ", "youtube ")
-                CommandType.POMODORO -> listOf("pomodoro ", "pomo ")
-                CommandType.UNINSTALL -> listOf("uninstall ", "remove ", "rmapp ")
-                CommandType.HELP -> listOf("help ", "commands ", "guide ")
-                else -> emptyList()
-            }
+            val redundantPrefixes = REDUNDANT_PREFIXES[symbolCommand] ?: emptyList()
             for (p in redundantPrefixes) {
                 if (arg.lowercase().startsWith(p)) {
                     arg = arg.substring(p.length).trim()
@@ -63,26 +90,7 @@ object CommandParser {
         }
 
         // 3. Check for natural language keyword prefixes
-        val keywordMatches = listOf(
-            PrefixMapping(listOf("set alarm", "alarm"), CommandType.ALARM, requireSpace = true),
-            PrefixMapping(listOf("set timer", "timer"), CommandType.TIMER, requireSpace = false),
-            PrefixMapping(listOf("pomodoro", "pomo"), CommandType.POMODORO, requireSpace = false),
-            PrefixMapping(listOf("yt", "youtube"), CommandType.YOUTUBE, requireSpace = false),
-            PrefixMapping(listOf("uninstall", "remove", "rmapp"), CommandType.UNINSTALL, requireSpace = false),
-            PrefixMapping(listOf("pin", "fav"), CommandType.PIN, requireSpace = false),
-            PrefixMapping(listOf("unpin", "unfav"), CommandType.UNPIN, requireSpace = false),
-            PrefixMapping(listOf("call", "dial"), CommandType.CALL, requireSpace = false),
-            PrefixMapping(listOf("whatsapp", "wa"), CommandType.WHATSAPP, requireSpace = false),
-            PrefixMapping(listOf("msg", "sms", "text", "message"), CommandType.MESSAGE, requireSpace = false),
-            PrefixMapping(listOf("notes", "note", "keep", "memo"), CommandType.NOTE, requireSpace = false),
-            PrefixMapping(listOf("todo", "task", "reminder", "remind"), CommandType.TODO, requireSpace = false),
-            PrefixMapping(listOf("event", "cal", "calendar", "schedule"), CommandType.EVENT, requireSpace = true),
-            PrefixMapping(listOf("drive"), CommandType.DRIVE, requireSpace = true),
-            PrefixMapping(listOf("email", "mail"), CommandType.EMAIL, requireSpace = true),
-            PrefixMapping(listOf("assistant", "ai", "ask", "search", "google", "find"), CommandType.ASK, requireSpace = false)
-        )
-
-        for (mapping in keywordMatches) {
+        for (mapping in KEYWORD_MATCHES) {
             for (prefix in mapping.prefixes) {
                 if (lower.startsWith("$prefix ")) {
                     val arg = trimmed.substring(prefix.length).trim()
@@ -108,10 +116,4 @@ object CommandParser {
             argument = trimmed
         )
     }
-
-    private data class PrefixMapping(
-        val prefixes: List<String>,
-        val commandType: CommandType,
-        val requireSpace: Boolean = false
-    )
 }

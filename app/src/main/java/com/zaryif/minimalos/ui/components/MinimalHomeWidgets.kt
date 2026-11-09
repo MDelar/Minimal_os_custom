@@ -88,6 +88,10 @@ fun MinimalDynamicHomeWidgets(
     onOpenCalendar: () -> Unit,
     onOpenClock: () -> Unit = {},
     onLaunchApp: (AppInfo) -> Unit,
+    quickNoteText: String = "",
+    onQuickNoteChange: (String) -> Unit = {},
+    onClearQuickNote: () -> Unit = {},
+    onOpenQuickNote: () -> Unit = {},
     onAddHomeWidget: (() -> Unit)?,
     onDeleteHomeWidget: ((Int) -> Unit)?,
     modifier: Modifier = Modifier
@@ -114,6 +118,15 @@ fun MinimalDynamicHomeWidgets(
                         notes = notes,
                         initialShowAll = showAllNotesPreference,
                         onOpenMemo = onOpenMemo
+                    )
+                }
+
+                "QUICK_NOTE" -> {
+                    MinimalHomeQuickNoteWidget(
+                        quickNoteText = quickNoteText,
+                        onNoteChange = onQuickNoteChange,
+                        onClear = onClearQuickNote,
+                        onOpenFullScreen = onOpenQuickNote
                     )
                 }
 
@@ -177,7 +190,6 @@ fun MinimalHomeTodosWidget(
         Box(
             modifier = modifier
                 .fillMaxWidth()
-                .animateContentSize(animationSpec = spring(dampingRatio = 0.82f, stiffness = 400f))
                 .clip(RoundedCornerShape(12.dp))
                 .background(MinimalCardBg)
                 .border(1.dp, MinimalDarkGray, RoundedCornerShape(12.dp))
@@ -545,11 +557,18 @@ fun MinimalHomeAlarmCountdownWidget(
     }
 
     LaunchedEffect(Unit) {
+        hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
+        triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
+        var ticks = 0
         while (true) {
-            hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
-            triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
             currentTime = System.currentTimeMillis()
             delay(1000)
+            ticks++
+            if (ticks >= 30) {
+                ticks = 0
+                hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
+                triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
+            }
         }
     }
 

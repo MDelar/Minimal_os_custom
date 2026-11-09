@@ -17,6 +17,7 @@ enum class CommandType(val symbol: Char, val displayName: String) {
     UNINSTALL('/', "uninstall"),
     PIN('\u0000', "pin"),
     UNPIN('\u0000', "unpin"),
+    QUICK_NOTE('\u0000', "quick note"),
     HELP('~', "help"),
     SEARCH('\u0000', "search");
 

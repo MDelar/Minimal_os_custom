@@ -21,10 +21,12 @@ import kotlinx.coroutines.launch
 /**
  * Global Pomodoro and countdown timer manager.
  * Runs independently of UI lifecycle so countdowns persist across screen transitions.
+ * Uses wall-clock timestamp calculations to avoid clock drift when phone sleeps.
  */
 object PomodoroTimerManager {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var tickerJob: Job? = null
+    private var targetEndTimeMillis: Long = 0L
 
     // Work & Break durations in seconds
     private val _workDurationSeconds = MutableStateFlow(25 * 60)
@@ -66,17 +68,24 @@ object PomodoroTimerManager {
     }
 
     fun start(seconds: Int? = null, label: String = "pomodoro") {
+        val duration = seconds ?: _remainingSeconds.value
+        _remainingSeconds.value = duration
         if (seconds != null) {
-            _remainingSeconds.value = seconds
             _workDurationSeconds.value = seconds
         }
         _timerLabel.value = label
         _hasStarted.value = true
         _isRunning.value = true
+        targetEndTimeMillis = System.currentTimeMillis() + (duration * 1000L)
         startTicker()
     }
 
     fun pause() {
+        if (_isRunning.value) {
+            val now = System.currentTimeMillis()
+            val rem = ((targetEndTimeMillis - now + 999L) / 1000L).toInt().coerceAtLeast(0)
+            _remainingSeconds.value = rem
+        }
         _isRunning.value = false
         tickerJob?.cancel()
         tickerJob = null
@@ -91,6 +100,7 @@ object PomodoroTimerManager {
             }
             _hasStarted.value = true
             _isRunning.value = true
+            targetEndTimeMillis = System.currentTimeMillis() + (_remainingSeconds.value * 1000L)
             startTicker()
         }
     }
@@ -111,16 +121,17 @@ object PomodoroTimerManager {
     private fun startTicker() {
         tickerJob?.cancel()
         tickerJob = scope.launch {
-            while (_isRunning.value && _remainingSeconds.value > 0) {
-                delay(1000)
-                if (_remainingSeconds.value > 0) {
-                    _remainingSeconds.value--
-                }
-                if (_remainingSeconds.value == 0) {
+            while (_isRunning.value) {
+                val now = System.currentTimeMillis()
+                val remaining = ((targetEndTimeMillis - now + 999L) / 1000L).toInt().coerceAtLeast(0)
+                _remainingSeconds.value = remaining
+
+                if (remaining <= 0) {
                     _isRunning.value = false
                     onTimerFinished()
                     break
                 }
+                delay(500)
             }
         }
     }
