@@ -10,10 +10,24 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.first
 import com.zaryif.minimalos.data.preferences.UserPreferences
 import com.zaryif.minimalos.data.repository.AppRepository
 import com.zaryif.minimalos.data.repository.ContactRepository
@@ -205,10 +220,32 @@ fun MinimalAppContent(
     onAddHomeWidget: () -> Unit,
     onDeleteHomeWidget: (Int) -> Unit
 ) {
-    val installedApps = remember { appRepository.getInstalledApps() }
+    var installedApps by remember { mutableStateOf(appRepository.getInstalledApps()) }
+    val favoriteAppPackages by userPreferences.favoriteApps.collectAsState(initial = emptySet())
     val deckWidgetIds by userPreferences.deckSystemWidgets.collectAsState(initial = emptySet())
     val onboardingCompleted by userPreferences.onboardingCompleted.collectAsState(initial = null)
     val scope = rememberCoroutineScope()
+
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                installedApps = appRepository.getInstalledApps()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(installedApps) {
+        val installedPackageNames = installedApps.map { it.packageName }.toSet()
+        val staleFavs = favoriteAppPackages.filter { it !in installedPackageNames }
+        if (staleFavs.isNotEmpty()) {
+            userPreferences.setFavoriteApps(favoriteAppPackages - staleFavs.toSet())
+        }
+    }
 
     var currentScreen by remember { mutableStateOf<ScreenState?>(null) }
 
@@ -228,7 +265,53 @@ fun MinimalAppContent(
         currentScreen = ScreenState.HOME
     }
 
-    Crossfade(targetState = activeScreen, label = "ScreenTransition") { screen ->
+    AnimatedContent(
+        targetState = activeScreen,
+        transitionSpec = {
+            when {
+                // Navigating to/from APPS (App Drawer): slide up from bottom
+                targetState == ScreenState.APPS -> {
+                    (slideInVertically(spring(dampingRatio = 0.85f, stiffness = 500f)) { it / 4 } + fadeIn(tween(200)))
+                        .togetherWith(fadeOut(tween(140)))
+                }
+                initialState == ScreenState.APPS -> {
+                    fadeIn(tween(150))
+                        .togetherWith(slideOutVertically(tween(180, easing = FastOutLinearInEasing)) { it / 4 } + fadeOut(tween(180)))
+                }
+                // Navigating to/from SETTINGS: slide from right
+                targetState == ScreenState.SETTINGS -> {
+                    (slideInHorizontally(spring(dampingRatio = 0.85f, stiffness = 500f)) { it / 4 } + fadeIn(tween(200)))
+                        .togetherWith(slideOutHorizontally(tween(160)) { -it / 6 } + fadeOut(tween(160)))
+                }
+                initialState == ScreenState.SETTINGS -> {
+                    (slideInHorizontally(tween(180)) { -it / 6 } + fadeIn(tween(180)))
+                        .togetherWith(slideOutHorizontally(tween(180, easing = FastOutLinearInEasing)) { it / 4 } + fadeOut(tween(180)))
+                }
+                // Navigating to/from WIDGETS DECK: slide from left
+                targetState == ScreenState.WIDGETS -> {
+                    (slideInHorizontally(spring(dampingRatio = 0.85f, stiffness = 500f)) { -it / 4 } + fadeIn(tween(200)))
+                        .togetherWith(slideOutHorizontally(tween(160)) { it / 6 } + fadeOut(tween(160)))
+                }
+                initialState == ScreenState.WIDGETS -> {
+                    (slideInHorizontally(tween(180)) { it / 6 } + fadeIn(tween(180)))
+                        .togetherWith(slideOutHorizontally(tween(180, easing = FastOutLinearInEasing)) { -it / 4 } + fadeOut(tween(180)))
+                }
+                // Navigating to/from HUB: slide from top
+                targetState == ScreenState.HUB -> {
+                    (slideInVertically(spring(dampingRatio = 0.85f, stiffness = 500f)) { -it / 4 } + fadeIn(tween(200)))
+                        .togetherWith(fadeOut(tween(140)))
+                }
+                initialState == ScreenState.HUB -> {
+                    fadeIn(tween(150))
+                        .togetherWith(slideOutVertically(tween(180, easing = FastOutLinearInEasing)) { -it / 4 } + fadeOut(tween(180)))
+                }
+                else -> {
+                    fadeIn(tween(220)).togetherWith(fadeOut(tween(180)))
+                }
+            }
+        },
+        label = "ScreenTransition"
+    ) { screen ->
         when (screen) {
             ScreenState.ONBOARDING -> {
                 OnboardingScreen(
@@ -265,6 +348,24 @@ fun MinimalAppContent(
             ScreenState.APPS -> {
                 AppDrawerScreen(
                     apps = installedApps,
+                    favoriteAppPackages = favoriteAppPackages,
+                    onTogglePin = { app ->
+                        scope.launch {
+                            val updated = if (app.packageName in favoriteAppPackages) {
+                                favoriteAppPackages - app.packageName
+                            } else {
+                                val currentHomeWidgets = userPreferences.homeWidgets.first()
+                                if ("SHORTCUTS" !in currentHomeWidgets) {
+                                    userPreferences.setHomeWidgets(currentHomeWidgets + "SHORTCUTS")
+                                }
+                                favoriteAppPackages + app.packageName
+                            }
+                            userPreferences.setFavoriteApps(updated)
+                        }
+                    },
+                    onUninstall = { app ->
+                        executeCommandUseCase.execute("uninstall ${app.packageName}")
+                    },
                     onBack = { currentScreen = ScreenState.HOME }
                 )
             }

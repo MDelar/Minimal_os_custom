@@ -74,6 +74,8 @@ Type keyword or symbol + text  ->  Instant execution
 | Command / Symbol | Action | Example | Result |
 |:---:|:---|:---|:---|
 | `uninstall` or `/` | **Uninstall App** | `uninstall chatgpt` or `/chatgpt` | Prompts native confirmation dialog to uninstall the app |
+| `pin` | **Pin to Home** | `pin chrome` or `pin spotify` | Pins app shortcut directly to Home screen with interactive `PIN` suggestions |
+| `unpin` | **Unpin from Home** | `unpin chrome` | Removes pinned app shortcut from Home screen |
 | `assistant` or `?` | **AI Assistant Query** | `assistant what is gravity` | Transmits prompt directly to Gemini, ChatGPT, Claude, or Copilot |
 | `yt` or `$` | **YouTube Search** | `yt lofi beats` or `$ lofi beats` | Searches directly in the YouTube Android app or web |
 | `pomo` or `%` | **Live Pomodoro** | `pomo 50m` or `pomodoro 50 minute` | Starts real-time home screen Pomodoro countdown timer |
@@ -96,8 +98,8 @@ Type keyword or symbol + text  ->  Instant execution
 - **Command History Toggle**: Enable or disable terminal command history recording anytime in Settings.
 - **Dynamic Multiline Auto-Expansion**: The command bar automatically expands from 1 line up to 3 lines when typing lengthy notes, tasks, or search queries, eliminating horizontal truncation.
 - **Terminal Up/Down Cycling Controls**: Tactile Up and Down controls step through terminal history anytime with live badge tracking (`HIST 1/10`).
-- **Inline Syntax Highlighting**: Only the action trigger or alias (such as `uninstall`, `yt`, `pomo`, `assistant`, `todo`, `notes`, `-`, `!`, `#`) lights up in bold theme accent color, while parameters and payload text stay clean, crisp white.
-- **Interactive Uninstall Suggestions**: Typing `uninstall` or `uninstall <query>` displays matching installed apps with a dedicated `UNINSTALL` action badge. Tapping any app directly triggers the native system deletion confirmation dialog.
+- **Inline Syntax Highlighting**: Only the action trigger or alias (such as `uninstall`, `pin`, `unpin`, `yt`, `pomo`, `assistant`, `todo`, `notes`, `-`, `!`, `#`) lights up in bold theme accent color, while parameters and payload text stay clean, crisp white.
+- **Interactive Action Suggestions**: Typing `uninstall`, `pin`, or `unpin` displays matching installed apps with dedicated `UNINSTALL`, `PIN`, or `UNPIN` action badges. Tapping any app directly triggers the native action.
 - **Smart Contact Search**: Search your address book with fuzzy matching and inline permission grant fallbacks.
 
 ---

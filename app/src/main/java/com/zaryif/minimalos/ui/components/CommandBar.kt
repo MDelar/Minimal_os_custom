@@ -1,8 +1,14 @@
 package com.zaryif.minimalos.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -88,6 +94,7 @@ private val BUILTIN_ACTION_KEYWORDS = setOf(
     "assistant", "ai", "ask", "search", "google", "find",
     "yt", "youtube",
     "uninstall", "remove", "rmapp",
+    "pin", "fav", "unpin", "unfav",
     "help", "commands", "man", "guide",
     "alias", "custom", "setalias", "unalias", "rmalias"
 )
@@ -155,6 +162,8 @@ fun CommandBar(
                 it == "yt" || it.startsWith("yt ") ||
                 it == "youtube" || it.startsWith("youtube ") ||
                 it == "uninstall" || it.startsWith("uninstall ") || it == "remove" || it.startsWith("remove ") || it == "rmapp" || it.startsWith("rmapp ") ||
+                it == "pin" || it.startsWith("pin ") || it == "fav" || it.startsWith("fav ") ||
+                it == "unpin" || it.startsWith("unpin ") || it == "unfav" || it.startsWith("unfav ") ||
                 it.startsWith("ask ") || it.startsWith("search ") || it.startsWith("google ") || it.startsWith("find ") ||
                 it == "help" || it.startsWith("help ") || it == "commands" || it == "man" || it == "guide"
             }
@@ -257,8 +266,8 @@ fun CommandBar(
 
         AnimatedVisibility(
             visible = showContactSuggestions,
-            enter = fadeIn(),
-            exit = fadeOut()
+            enter = slideInVertically(spring(dampingRatio = 0.8f, stiffness = 500f)) { it / 3 } + fadeIn(tween(150)),
+            exit = slideOutVertically(tween(120, easing = FastOutLinearInEasing)) { it / 4 } + fadeOut(tween(120))
         ) {
             Column(
                 modifier = Modifier
@@ -439,17 +448,23 @@ fun CommandBar(
             }
         }
 
-        // 2. App auto-complete suggestions if searching apps or uninstalling
+        // 2. App auto-complete suggestions if searching apps, uninstalling, or pinning
         val isUninstallMode = lower.let {
             it.startsWith("uninstall") || it.startsWith("remove") || it.startsWith("rmapp")
         } || query.startsWith("/")
+        val isPinMode = lower.let {
+            it.startsWith("pin") || it.startsWith("fav")
+        }
+        val isUnpinMode = lower.let {
+            it.startsWith("unpin") || it.startsWith("unfav")
+        }
         val showAppSuggestions = query.isNotBlank() && !isCallingOrMessaging && matchingApps.isNotEmpty() &&
                 (!hasPrefix || query.startsWith("/"))
 
         AnimatedVisibility(
             visible = showAppSuggestions,
-            enter = fadeIn(),
-            exit = fadeOut()
+            enter = slideInVertically(spring(dampingRatio = 0.8f, stiffness = 500f)) { it / 3 } + fadeIn(tween(150)),
+            exit = slideOutVertically(tween(120, easing = FastOutLinearInEasing)) { it / 4 } + fadeOut(tween(120))
         ) {
             Column(
                 modifier = Modifier
@@ -457,7 +472,11 @@ fun CommandBar(
                     .padding(bottom = 6.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MinimalCardBg)
-                    .border(1.dp, if (isUninstallMode) MinimalRed.copy(alpha = 0.5f) else MinimalDarkGray, RoundedCornerShape(12.dp))
+                    .border(
+                        1.dp,
+                        if (isUninstallMode || isPinMode || isUnpinMode) MinimalRed.copy(alpha = 0.5f) else MinimalDarkGray,
+                        RoundedCornerShape(12.dp)
+                    )
                     .heightIn(max = 145.dp)
                     .verticalScroll(rememberScrollState())
             ) {
@@ -494,6 +513,36 @@ fun CommandBar(
                                     color = MinimalRed
                                 )
                             }
+                        } else if (isPinMode) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(MinimalDarkCardBg)
+                                    .border(1.dp, MinimalRed, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "PIN",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MinimalRed
+                                )
+                            }
+                        } else if (isUnpinMode) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(MinimalDarkCardBg)
+                                    .border(1.dp, MinimalRed, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "UNPIN",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MinimalRed
+                                )
+                            }
                         } else {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -507,13 +556,19 @@ fun CommandBar(
             }
         }
 
+        val animatedBorderColor by animateColorAsState(
+            targetValue = if (isActionTriggered) MinimalRed.copy(alpha = 0.6f) else MinimalDarkGray,
+            animationSpec = tween(180),
+            label = "commandBarBorderColor"
+        )
+
         // 3. Command Bar Input Box
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
                 .background(MinimalCardBg)
-                .border(1.dp, if (isActionTriggered) MinimalRed.copy(alpha = 0.5f) else MinimalDarkGray, RoundedCornerShape(16.dp))
+                .border(1.dp, animatedBorderColor, RoundedCornerShape(16.dp))
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             contentAlignment = Alignment.CenterStart
         ) {

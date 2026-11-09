@@ -69,6 +69,8 @@ object CommandParser {
             PrefixMapping(listOf("pomodoro", "pomo"), CommandType.POMODORO, requireSpace = false),
             PrefixMapping(listOf("yt", "youtube"), CommandType.YOUTUBE, requireSpace = false),
             PrefixMapping(listOf("uninstall", "remove", "rmapp"), CommandType.UNINSTALL, requireSpace = false),
+            PrefixMapping(listOf("pin", "fav"), CommandType.PIN, requireSpace = false),
+            PrefixMapping(listOf("unpin", "unfav"), CommandType.UNPIN, requireSpace = false),
             PrefixMapping(listOf("call", "dial"), CommandType.CALL, requireSpace = false),
             PrefixMapping(listOf("whatsapp", "wa"), CommandType.WHATSAPP, requireSpace = false),
             PrefixMapping(listOf("msg", "sms", "text", "message"), CommandType.MESSAGE, requireSpace = false),

@@ -48,6 +48,18 @@ class CommandParserTest {
         assertEquals(CommandType.POMODORO, pomo.type)
         assertEquals("45m", pomo.argument)
 
+        val pin = CommandParser.parse("pin chrome")
+        assertEquals(CommandType.PIN, pin.type)
+        assertEquals("chrome", pin.argument)
+
+        val unpin = CommandParser.parse("unpin chrome")
+        assertEquals(CommandType.UNPIN, unpin.type)
+        assertEquals("chrome", unpin.argument)
+
+        val fav = CommandParser.parse("fav spotify")
+        assertEquals(CommandType.PIN, fav.type)
+        assertEquals("spotify", fav.argument)
+
         val help = CommandParser.parse("help")
         assertEquals(CommandType.HELP, help.type)
     }

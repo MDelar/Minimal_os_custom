@@ -144,6 +144,8 @@ fun CommandHelpDialog(
 
                 val commands = listOf(
                     Triple("uninstall or /", "uninstall chatgpt", "Uninstalls app via system confirmation dialog"),
+                    Triple("pin", "pin chrome", "Pins app shortcut to Home screen"),
+                    Triple("unpin", "unpin chrome", "Removes pinned app shortcut from Home screen"),
                     Triple("yt or $", "yt lofi beats", "Directly searches in YouTube app or web"),
                     Triple("pomo or %", "pomo 50m", "Starts live home screen Pomodoro countdown timer"),
                     Triple("assistant or ?", "assistant what is gravity", "Direct query to your AI Assistant (Gemini/ChatGPT/Claude)"),
