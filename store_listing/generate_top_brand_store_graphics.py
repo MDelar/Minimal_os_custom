@@ -360,6 +360,14 @@ def main():
             "sub": "Fully open source. No trackers, no ads, and no cloud dependencies.",
             "src": "09_real_settings_screen.png",
             "out": "08_zero_telemetry_privacy.png"
+        },
+        {
+            "badge": "09 // UNIFIED NOTIFICATION HUB",
+            "t1": "LIVE ALERTS & AI EXPORT",
+            "t2": "",
+            "sub": "Live music player, local archive, direct .txt download & AI summary prompts.",
+            "src": "12_real_notification_hub.png",
+            "out": "09_real_notification_hub.png"
         }
     ]
     
