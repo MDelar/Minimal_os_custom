@@ -1063,7 +1063,7 @@ private fun StepSetupWizard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                MinimalThemeRegistry.THEMES.forEach { theme ->
+                MinimalThemeRegistry.ORIGINAL_THEMES.forEach { theme ->
                     val isSelected = selectedThemeId.equals(theme.id, ignoreCase = true)
                     Box(
                         modifier = Modifier
