@@ -192,27 +192,52 @@ class NotificationHistoryRepository(context: Context) {
     }
 
     fun exportFormattedText(items: List<NotificationItem>): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        val exportDate = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+        val dayFormat = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault())
+        val dayKeyFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val exportTimestamp = SimpleDateFormat("EEEE, yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
         val sb = StringBuilder()
         sb.appendLine("==================================================")
-        sb.appendLine("MINIMAL OS · NOTIFICATION ARCHIVE")
-        sb.appendLine("Exported: $exportDate")
+        sb.appendLine("MINIMAL OS · NOTIFICATION ARCHIVE LOG")
+        sb.appendLine("Exported: $exportTimestamp")
         sb.appendLine("Total Entries: ${items.size}")
         sb.appendLine("==================================================")
         sb.appendLine()
 
-        items.forEachIndexed { index, item ->
-            val dateStr = sdf.format(Date(item.timestamp))
-            sb.appendLine("[${index + 1}] $dateStr · ${item.appName} (${item.category.name})")
-            if (item.title.isNotBlank()) {
-                sb.appendLine("Title: ${item.title}")
+        if (items.isEmpty()) {
+            sb.appendLine("(No notification history recorded)")
+            return sb.toString()
+        }
+
+        // Group notifications day-wise (maintaining chronological order)
+        val groupedByDay = items.groupBy { dayKeyFormat.format(Date(it.timestamp)) }
+
+        var entryCounter = 1
+        groupedByDay.forEach { (_, dayItems) ->
+            val firstDate = Date(dayItems.first().timestamp)
+            val dayHeader = dayFormat.format(firstDate).uppercase()
+
+            sb.appendLine("══════════════════════════════════════════════════")
+            sb.appendLine("📅 DAY: $dayHeader (${dayItems.size} alerts)")
+            sb.appendLine("══════════════════════════════════════════════════")
+            sb.appendLine()
+
+            dayItems.forEach { item ->
+                val timeStr = timeFormat.format(Date(item.timestamp))
+                val dateStr = dayKeyFormat.format(Date(item.timestamp))
+                val appLabel = item.appName.ifBlank { item.packageName }
+                sb.appendLine("[$entryCounter] TIME: $timeStr · DATE: $dateStr · $appLabel (${item.category.name})")
+                if (item.title.isNotBlank()) {
+                    sb.appendLine("Title: ${item.title.trim()}")
+                }
+                if (item.content.isNotBlank()) {
+                    sb.appendLine("Message: ${item.content.trim()}")
+                }
+                sb.appendLine("--------------------------------------------------")
+                entryCounter++
             }
-            if (item.content.isNotBlank()) {
-                sb.appendLine("Message: ${item.content}")
-            }
-            sb.appendLine("--------------------------------------------------")
+            sb.appendLine()
         }
 
         return sb.toString()

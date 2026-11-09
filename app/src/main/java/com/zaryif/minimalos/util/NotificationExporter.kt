@@ -21,8 +21,9 @@ object NotificationExporter {
 
         val fullText = if (forAssistant) {
             """
-            Please analyze and summarize my recent notification log from Minimal OS:
-            - Highlight any urgent tasks, messages, or missed calls that require action
+            Please analyze and summarize my day-wise notification log from Minimal OS:
+            - Group key insights day by day (Day of week, Date, and Time)
+            - Highlight any urgent tasks, important messages, or missed calls that require action
             - Group related alerts by app or topic
             - Provide a concise executive overview
 
