@@ -721,14 +721,7 @@ fun HomeScreen(
                         when (result) {
                             is CommandResult.Success -> {
                                 query = ""
-                                val isAlwaysFeedback = input.trim().lowercase().let {
-                                    it.startsWith("pin") || it.startsWith("unpin") ||
-                                    it.startsWith("fav") || it.startsWith("unfav") ||
-                                    it.startsWith("uninstall") || it.startsWith("remove") ||
-                                    it.startsWith("alias") || it.startsWith("unalias") ||
-                                    it.startsWith("qn") || it.startsWith("quicknote")
-                                }
-                                if (showCommandFeedback || isAlwaysFeedback) {
+                                if (showCommandFeedback) {
                                     notificationMessage = result.message
                                 }
                             }
@@ -763,21 +756,21 @@ fun HomeScreen(
                         if (isUninstall) {
                             val result = executeCommandUseCase.execute("uninstall ${app.packageName}")
                             when (result) {
-                                is CommandResult.Success -> notificationMessage = result.message
+                                is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
                                 is CommandResult.Error -> notificationMessage = result.error
                                 else -> {}
                             }
                         } else if (isPin) {
                             val result = executeCommandUseCase.execute("pin ${app.packageName}")
                             when (result) {
-                                is CommandResult.Success -> notificationMessage = result.message
+                                is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
                                 is CommandResult.Error -> notificationMessage = result.error
                                 else -> {}
                             }
                         } else if (isUnpin) {
                             val result = executeCommandUseCase.execute("unpin ${app.packageName}")
                             when (result) {
-                                is CommandResult.Success -> notificationMessage = result.message
+                                is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
                                 is CommandResult.Error -> notificationMessage = result.error
                                 else -> {}
                             }

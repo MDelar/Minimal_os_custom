@@ -102,6 +102,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import com.zaryif.minimalos.ui.theme.AppleSanFranciscoFontFamily
 import com.zaryif.minimalos.ui.theme.MinimalWhite
 import com.zaryif.minimalos.ui.theme.MinimalOnAccent
+import com.zaryif.minimalos.util.AppStrings
 import androidx.compose.ui.window.Dialog
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -167,20 +168,20 @@ fun WidgetsDeckScreen(
             ) {
                 Column {
                     Text(
-                        text = "widgets",
+                        text = AppStrings.deckTitle,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         color = MinimalWhite
                     )
                     Text(
-                        text = "interactive cards · notes · widgets · focus",
+                        text = AppStrings.deckSubtitle,
                         fontSize = 12.sp,
                         color = MinimalGray
                     )
                 }
 
                 Text(
-                    text = "HOME ->",
+                    text = AppStrings.deckHomeBtn,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = MinimalRed,
@@ -354,7 +355,7 @@ fun WidgetsDeckScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = "No external app widgets added yet.\nTap '+ ADD WIDGET' to host Calendar, Spotify, Weather, etc.",
+                                            text = AppStrings.deckNoSystemWidgets,
                                             fontSize = 12.sp,
                                             color = MinimalGray,
                                             lineHeight = 18.sp
@@ -382,7 +383,7 @@ fun WidgetsDeckScreen(
 
             // Bottom hint
             Text(
-                text = "SWIPE RIGHT FOR HOME ->",
+                text = AppStrings.deckSwipeRightHint,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
@@ -1806,7 +1807,7 @@ private fun RabbitSystemWidgetsHeader(onAddWidget: () -> Unit) {
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "widgets",
+                text = AppStrings.deckTitle,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = MinimalWhite,
@@ -1822,7 +1823,7 @@ private fun RabbitSystemWidgetsHeader(onAddWidget: () -> Unit) {
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
-                text = "+ ADD WIDGET",
+                text = AppStrings.deckAddWidgetBtn,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = MinimalOnAccent

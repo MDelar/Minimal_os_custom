@@ -49,7 +49,7 @@ class UserPreferences(private val context: Context) {
         private val QUICK_NOTE_PINNED = booleanPreferencesKey("quick_note_pinned")
         private val NOTIFICATION_HISTORY_ENABLED = booleanPreferencesKey("notification_history_enabled")
 
-        val DEFAULT_HOME_WIDGETS = listOf("TODOS", "CALENDAR", "SHORTCUTS")
+        val DEFAULT_HOME_WIDGETS = listOf("ALARM_COUNTDOWN", "TODOS", "SHORTCUTS")
         val DEFAULT_DECK_WIDGETS = listOf("QUICK_NOTE", "NOTES", "TODOS", "CALENDAR", "POMODORO", "ALARMS", "ALIASES", "TIMERS", "SYSTEM_WIDGETS")
     }
 

@@ -32,9 +32,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -92,6 +94,7 @@ import com.zaryif.minimalos.ui.theme.MinimalDarkGray
 import com.zaryif.minimalos.ui.theme.MinimalGray
 import com.zaryif.minimalos.ui.theme.MinimalRed
 import com.zaryif.minimalos.ui.theme.MinimalWhite
+import com.zaryif.minimalos.util.AppStrings
 import com.zaryif.minimalos.util.NotificationExporter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -170,35 +173,42 @@ fun HubScreen(
                     }
                 }
             }
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header with back arrow, refined brand title, and quick action icons
+
+            // ── Top Header (Apple-Style Clean Hierarchy) ─────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Left: Back button + Title & Status
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBackToHome, modifier = Modifier.size(36.dp)) {
+                    IconButton(
+                        onClick = onBackToHome,
+                        modifier = Modifier.size(36.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back to home",
+                            contentDescription = "Back",
                             tint = MinimalWhite,
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "NOTIFICATION HUB",
-                                fontSize = 16.sp,
+                                text = AppStrings.hubTitle,
+                                fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp,
-                                color = MinimalWhite
+                                color = MinimalWhite,
+                                letterSpacing = (-0.5).sp
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
                                     .size(6.dp)
@@ -207,7 +217,7 @@ fun HubScreen(
                             )
                         }
                         Text(
-                            text = "Unified Stream · Messages, Calls & System",
+                            text = if (isArchiveMode) AppStrings.hubSubtitleArchive else AppStrings.hubSubtitleLive,
                             fontSize = 11.sp,
                             color = MinimalGray,
                             letterSpacing = 0.2.sp
@@ -215,96 +225,119 @@ fun HubScreen(
                     }
                 }
 
-                // Top right actions: Direct Download, Search toggle, and AI Export
+                // Right: High-contrast Search Button & AI Summary Button
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = {
-                            val itemsToExport = if (filteredList.isNotEmpty()) filteredList else activeSource
-                            NotificationExporter.downloadToDevice(context, itemsToExport)
-                        },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Download,
-                            contentDescription = "Download log (.txt)",
-                            tint = MinimalWhite,
-                            modifier = Modifier.size(19.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            isSearchActive = !isSearchActive
-                            if (!isSearchActive) searchQuery = ""
-                        },
-                        modifier = Modifier.size(36.dp)
+                    // Visible Search Toggle Button
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSearchActive) MinimalCardBg else MinimalDarkCardBg)
+                            .border(
+                                1.dp,
+                                if (isSearchActive) MinimalRed else MinimalDarkGray,
+                                RoundedCornerShape(10.dp)
+                            )
+                            .clickable {
+                                isSearchActive = !isSearchActive
+                                if (!isSearchActive) searchQuery = ""
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
-                            contentDescription = "Search alerts",
+                            contentDescription = "Search",
                             tint = if (isSearchActive) MinimalRed else MinimalWhite,
-                            modifier = Modifier.size(19.dp)
+                            modifier = Modifier.size(17.dp)
                         )
                     }
 
-                    IconButton(
-                        onClick = { showExportSheet = true },
-                        modifier = Modifier.size(36.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // AI Intelligence & Export Button
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MinimalDarkCardBg)
+                            .border(1.dp, MinimalDarkGray, RoundedCornerShape(10.dp))
+                            .clickable { showExportSheet = true },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "Send to AI / Export",
+                            contentDescription = "AI Export",
                             tint = MinimalRed,
-                            modifier = Modifier.size(19.dp)
+                            modifier = Modifier.size(17.dp)
                         )
                     }
                 }
             }
 
-            // Inline Search Field
+            // ── Inline Search Field ─────────────────────────────────
             AnimatedVisibility(
                 visible = isSearchActive,
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
-                Box(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(MinimalDarkCardBg)
-                        .border(1.dp, MinimalDarkGray, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .border(1.dp, MinimalDarkGray, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    BasicTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        textStyle = TextStyle(
-                            color = MinimalWhite,
-                            fontSize = 13.sp
-                        ),
-                        cursorBrush = SolidColor(MinimalRed),
-                        modifier = Modifier.fillMaxWidth(),
-                        decorationBox = { innerTextField ->
-                            if (searchQuery.isEmpty()) {
-                                Text(
-                                    text = "search alerts by app, title, or message...",
-                                    fontSize = 13.sp,
-                                    color = MinimalDarkGray
-                                )
-                            }
-                            innerTextField()
-                        }
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MinimalGray,
+                        modifier = Modifier.size(16.dp)
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (searchQuery.isEmpty()) {
+                            Text(
+                                text = AppStrings.hubSearchPlaceholder,
+                                fontSize = 13.sp,
+                                color = MinimalDarkGray
+                            )
+                        }
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            textStyle = TextStyle(
+                                color = MinimalWhite,
+                                fontSize = 13.sp
+                            ),
+                            cursorBrush = SolidColor(MinimalRed),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(
+                            onClick = { searchQuery = "" },
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear",
+                                tint = MinimalGray,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
                 }
             }
 
-            // Permission status banner if listener service is disabled
+            // ── Permission Required Banner ──────────────────────────
             if (!isPermissionGranted) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 MinimalCard(
-                    title = "notification access required",
-                    subtitle = "tap to grant permission so Hub receives alerts live",
+                    title = AppStrings.hubPermissionTitle,
+                    subtitle = AppStrings.hubPermissionSubtitle,
                     icon = Icons.Default.Warning,
                     iconColor = MinimalRed,
                     onClick = {
@@ -316,201 +349,156 @@ fun HubScreen(
                 )
             }
 
-            // Live Music / Media Player Card ("music on off if music playing")
+            // ── Live Music / Media Player Card ──────────────────────
             currentTrack?.let { track ->
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 MinimalNowPlayingCard(
                     track = track,
-                    onTogglePlayPause = {
-                        MinimalMediaManager.togglePlayPause(context)
-                    },
-                    onNext = {
-                        MinimalMediaManager.skipToNext(context)
-                    },
-                    onPrev = {
-                        MinimalMediaManager.skipToPrevious(context)
-                    },
-                    onOpenApp = {
-                        MinimalMediaManager.openPlayer(context)
-                    }
+                    onTogglePlayPause = { MinimalMediaManager.togglePlayPause(context) },
+                    onNext = { MinimalMediaManager.skipToNext(context) },
+                    onPrev = { MinimalMediaManager.skipToPrevious(context) },
+                    onOpenApp = { MinimalMediaManager.openPlayer(context) }
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Executive Segmented Mode Switcher & Save Log Toggle
+            // ── Mode Switcher & Filter Row ──────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Segmented Switcher Capsule
+                // Segmented Control Capsule (Live / Archive)
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(MinimalDarkCardBg)
-                        .border(1.dp, MinimalDarkGray, RoundedCornerShape(8.dp))
-                        .padding(2.dp),
+                        .padding(3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val liveCount = liveNotifications.size
                     val archiveCount = archivedNotifications.size
 
+                    // Live Tab
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(if (!isArchiveMode) MinimalCardBg else Color.Transparent)
-                            .border(
-                                width = if (!isArchiveMode) 0.5.dp else 0.dp,
-                                color = if (!isArchiveMode) MinimalDarkGray else Color.Transparent,
-                                shape = RoundedCornerShape(6.dp)
-                            )
                             .clickable { isArchiveMode = false }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (!isArchiveMode) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(5.dp)
-                                        .clip(CircleShape)
-                                        .background(MinimalRed)
-                                )
-                                Spacer(modifier = Modifier.width(5.dp))
-                            }
-                            Text(
-                                text = "LIVE ($liveCount)",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp,
-                                color = if (!isArchiveMode) MinimalWhite else MinimalGray
-                            )
-                        }
+                        Text(
+                            text = if (liveCount > 0) "${AppStrings.hubTabLive} ($liveCount)" else AppStrings.hubTabLive,
+                            fontSize = 12.sp,
+                            fontWeight = if (!isArchiveMode) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (!isArchiveMode) MinimalWhite else MinimalGray
+                        )
                     }
 
+                    // Archive Tab
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(if (isArchiveMode) MinimalCardBg else Color.Transparent)
-                            .border(
-                                width = if (isArchiveMode) 0.5.dp else 0.dp,
-                                color = if (isArchiveMode) MinimalDarkGray else Color.Transparent,
-                                shape = RoundedCornerShape(6.dp)
-                            )
                             .clickable { isArchiveMode = true }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (isArchiveMode) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(5.dp)
-                                        .clip(CircleShape)
-                                        .background(MinimalRed)
+                        Text(
+                            text = if (archiveCount > 0) "${AppStrings.hubTabArchive} ($archiveCount)" else AppStrings.hubTabArchive,
+                            fontSize = 12.sp,
+                            fontWeight = if (isArchiveMode) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isArchiveMode) MinimalWhite else MinimalGray
+                        )
+                    }
+                }
+
+                // Category Filter Pills
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    categories.forEach { cat ->
+                        val isSelected = cat == selectedCategory
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) MinimalCardBg else Color.Transparent)
+                                .border(
+                                    1.dp,
+                                    if (isSelected) MinimalDarkGray else Color.Transparent,
+                                    RoundedCornerShape(8.dp)
                                 )
-                                Spacer(modifier = Modifier.width(5.dp))
-                            }
+                                .clickable { selectedCategory = cat }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
                             Text(
-                                text = "ARCHIVE ($archiveCount)",
+                                text = cat.displayName,
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp,
-                                color = if (isArchiveMode) MinimalWhite else MinimalGray
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isSelected) MinimalWhite else MinimalGray
                             )
                         }
                     }
                 }
+            }
 
-                // Toggle notification saving directly in Hub
+            // ── 1-Tap Quick Action: Send to AI Assistant for Instant Summary ──
+            if (activeSource.isNotEmpty() && !isSearchActive) {
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isHistoryEnabled) MinimalDarkCardBg else MinimalDarkCardBg.copy(alpha = 0.5f))
-                        .border(
-                            1.dp,
-                            if (isHistoryEnabled) MinimalRed.copy(alpha = 0.5f) else MinimalDarkGray,
-                            RoundedCornerShape(8.dp)
-                        )
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MinimalDarkCardBg)
+                        .border(1.dp, MinimalRed.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
                         .clickable {
                             scope.launch {
-                                prefs.setNotificationHistoryEnabled(!isHistoryEnabled)
+                                val currentAssistant = userPreferences?.assistantPackage?.first()
+                                val itemsToExport = if (filteredList.isNotEmpty()) filteredList else activeSource
+                                NotificationExporter.shareExport(
+                                    context = context,
+                                    items = itemsToExport,
+                                    forAssistant = true,
+                                    assistantPackage = currentAssistant
+                                )
                             }
                         }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(if (isHistoryEnabled) MinimalRed else MinimalDarkGray)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (isHistoryEnabled) "SAVE: ON" else "SAVE: OFF",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp,
-                        color = if (isHistoryEnabled) MinimalWhite else MinimalGray
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = MinimalRed,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Summarize ${activeSource.size} alerts with AI Assistant",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MinimalWhite
+                        )
+                    }
+
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Summarize",
+                        tint = MinimalRed,
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Category Filter Pills
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                categories.forEach { cat ->
-                    val isSelected = cat == selectedCategory
-                    val count = if (cat == NotificationCategory.ALL) {
-                        activeSource.size
-                    } else {
-                        activeSource.count { it.category == cat }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isSelected) MinimalCardBg else MinimalDarkCardBg)
-                            .border(
-                                1.dp,
-                                if (isSelected) MinimalRed else MinimalDarkGray,
-                                RoundedCornerShape(8.dp)
-                            )
-                            .clickable { selectedCategory = cat }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = cat.displayName,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                letterSpacing = 0.5.sp,
-                                color = if (isSelected) MinimalWhite else MinimalGray
-                            )
-                            if (count > 0) {
-                                Spacer(modifier = Modifier.width(5.dp))
-                                Text(
-                                    text = "$count",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) MinimalRed else MinimalDarkGray
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Notifications List / Empty State
+            // ── Notifications List / Empty State ────────────────────
             if (filteredList.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -524,7 +512,7 @@ fun HubScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(44.dp)
                                 .clip(CircleShape)
                                 .background(MinimalDarkCardBg)
                                 .border(1.dp, MinimalDarkGray, CircleShape),
@@ -534,22 +522,22 @@ fun HubScreen(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,
                                 tint = MinimalGray,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         Text(
                             text = if (searchQuery.isNotBlank()) "No alerts matching \"$searchQuery\""
-                                   else if (isArchiveMode) "Archive is empty in ${selectedCategory.displayName.lowercase()}"
-                                   else "All caught up in ${selectedCategory.displayName.lowercase()}",
+                                   else if (isArchiveMode) AppStrings.hubEmptyArchiveTitle
+                                   else AppStrings.hubEmptyTitle,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MinimalWhite
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (isArchiveMode) "Saved notifications will be archived here locally"
-                                   else "Incoming messages and app alerts will stream live",
+                            text = if (isArchiveMode) AppStrings.hubEmptyArchiveSubtitle
+                                   else AppStrings.hubEmptySubtitle,
                             fontSize = 11.sp,
                             color = MinimalGray
                         )
@@ -615,73 +603,78 @@ fun HubScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Bottom Action Footer: Navigation hint and quick action pills
+            // ── Professional Apple-Style Bottom Footer ──────────────
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "← SWIPE FOR HOME",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = MinimalRed,
+                // Home Button Capsule
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MinimalDarkCardBg)
+                        .border(1.dp, MinimalDarkGray, RoundedCornerShape(8.dp))
                         .clickable { onBackToHome() }
-                        .padding(vertical = 4.dp)
-                )
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // AI Export chip
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(MinimalDarkCardBg)
-                            .border(1.dp, MinimalRed.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
-                            .clickable { showExportSheet = true }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "AI EXPORT",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp,
-                            color = MinimalRed
-                        )
-                    }
-
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Home",
+                        tint = MinimalGray,
+                        modifier = Modifier.size(13.dp)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = AppStrings.hubHomeBtn,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MinimalWhite
+                    )
+                }
 
-                    // Download .txt chip
-                    Box(
+                // Actions: Export & Clear
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Export Log Pill
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(MinimalDarkCardBg)
-                            .border(1.dp, MinimalDarkGray, RoundedCornerShape(6.dp))
+                            .border(1.dp, MinimalDarkGray, RoundedCornerShape(8.dp))
                             .clickable {
                                 val itemsToExport = if (filteredList.isNotEmpty()) filteredList else activeSource
                                 NotificationExporter.downloadToDevice(context, itemsToExport)
                             }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Download,
+                            contentDescription = "Download log",
+                            tint = MinimalGray,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = "DOWNLOAD",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp,
+                            text = AppStrings.hubDownloadLogBtn,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
                             color = MinimalWhite
                         )
                     }
 
-                    // Clear button when list is not empty
+                    // Clear / Clear All Pill (Properly sized and perfectly fitting)
                     if (filteredList.isNotEmpty()) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Box(
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(MinimalDarkCardBg)
-                                .border(1.dp, MinimalDarkGray, RoundedCornerShape(6.dp))
+                                .border(1.dp, MinimalDarkGray, RoundedCornerShape(8.dp))
                                 .clickable {
                                     if (isArchiveMode) {
                                         showClearHistoryDialog = true
@@ -689,13 +682,19 @@ fun HubScreen(
                                         filteredList.forEach { MinimalNotificationService.dismiss(it.key) }
                                     }
                                 }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = "Clear",
+                                tint = MinimalGray,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = if (isArchiveMode) "CLEAR ARCHIVE" else "CLEAR ALL",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp,
+                                text = if (isArchiveMode) AppStrings.hubClearBtn else AppStrings.hubClearAllBtn,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MinimalGray
                             )
                         }
@@ -705,18 +704,24 @@ fun HubScreen(
         }
     }
 
-    // Confirmation dialog for clearing archive
+    // ── Confirmation Dialog for Clearing Archive ────────────────────
     if (showClearHistoryDialog) {
         AlertDialog(
             onDismissRequest = { showClearHistoryDialog = false },
             title = {
-                Text(text = "clear notification archive?", color = MinimalWhite, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Clear notification archive?",
+                    color = MinimalWhite,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                )
             },
             text = {
                 Text(
-                    text = "this will permanently delete all stored local notifications from your device.",
+                    text = "This will permanently delete all stored local notifications from your device.",
                     color = MinimalGray,
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
                 )
             },
             confirmButton = {
@@ -726,19 +731,19 @@ fun HubScreen(
                         showClearHistoryDialog = false
                     }
                 ) {
-                    Text(text = "clear all", color = MinimalRed, fontWeight = FontWeight.Bold)
+                    Text(text = "Clear All", color = MinimalRed, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearHistoryDialog = false }) {
-                    Text(text = "cancel", color = MinimalWhite)
+                    Text(text = "Cancel", color = MinimalWhite)
                 }
             },
             containerColor = MinimalCardBg
         )
     }
 
-    // AI Assistant & Export Options Dialog
+    // ── AI Assistant & Export Options Dialog ────────────────────────
     if (showExportSheet) {
         AlertDialog(
             onDismissRequest = { showExportSheet = false },
@@ -748,21 +753,21 @@ fun HubScreen(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = null,
                         tint = MinimalRed,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "hub intelligence & export",
+                        text = "Hub Intelligence & Export",
                         color = MinimalWhite,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
+                        fontSize = 16.sp
                     )
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "send your notification log to an AI assistant (Gemini/Claude/ChatGPT) to summarize key messages, or export as a .txt file:",
+                        text = "Summarize or export notification logs for AI analysis:",
                         color = MinimalGray,
                         fontSize = 13.sp
                     )
@@ -773,8 +778,9 @@ fun HubScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(MinimalDarkCardBg)
+                            .border(1.dp, MinimalRed.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
                             .clickable {
                                 showExportSheet = false
                                 scope.launch {
@@ -800,25 +806,26 @@ fun HubScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "send to ai assistant",
+                                text = "Send to AI Assistant",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MinimalWhite
                             )
                             Text(
-                                text = "creates prompt with .txt log to summarize urgent tasks",
+                                text = "Formats full log with executive summary prompt",
                                 fontSize = 11.sp,
                                 color = MinimalGray
                             )
                         }
                     }
 
-                    // Option 2: Export raw .txt file
+                    // Option 2: Export .txt file
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(MinimalDarkCardBg)
+                            .border(1.dp, MinimalDarkGray, RoundedCornerShape(10.dp))
                             .clickable {
                                 showExportSheet = false
                                 val itemsToExport = if (filteredList.isNotEmpty()) filteredList else activeSource
@@ -840,25 +847,26 @@ fun HubScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "export .txt log",
+                                text = "Share plain text log",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MinimalWhite
                             )
                             Text(
-                                text = "share or save plain text archive file",
+                                text = "Share log via messaging or storage apps",
                                 fontSize = 11.sp,
                                 color = MinimalGray
                             )
                         }
                     }
 
-                    // Option 3: Download to Device (.txt)
+                    // Option 3: Download to Device
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(MinimalDarkCardBg)
+                            .border(1.dp, MinimalDarkGray, RoundedCornerShape(10.dp))
                             .clickable {
                                 showExportSheet = false
                                 val itemsToExport = if (filteredList.isNotEmpty()) filteredList else activeSource
@@ -880,13 +888,13 @@ fun HubScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "download .txt to device",
+                                text = "Save to Downloads",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MinimalWhite
                             )
                             Text(
-                                text = "saves archive directly to system Downloads folder",
+                                text = "Saves file directly to device Downloads",
                                 fontSize = 11.sp,
                                 color = MinimalGray
                             )
@@ -897,8 +905,9 @@ fun HubScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(MinimalDarkCardBg)
+                            .border(1.dp, MinimalDarkGray, RoundedCornerShape(10.dp))
                             .clickable {
                                 showExportSheet = false
                                 val itemsToExport = if (filteredList.isNotEmpty()) filteredList else activeSource
@@ -920,59 +929,15 @@ fun HubScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "copy ai prompt & log",
+                                text = "Copy prompt & log",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MinimalWhite
                             )
                             Text(
-                                text = "copy formatted text directly to clipboard",
+                                text = "Copies formatted prompt to clipboard",
                                 fontSize = 11.sp,
                                 color = MinimalGray
-                            )
-                        }
-                    }
-
-                    // Notification saving toggle option inside sheet
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MinimalDarkCardBg.copy(alpha = 0.5f))
-                            .clickable {
-                                scope.launch {
-                                    prefs.setNotificationHistoryEnabled(!isHistoryEnabled)
-                                }
-                            }
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "notification archive saving",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MinimalWhite
-                            )
-                            Text(
-                                text = if (isHistoryEnabled) "saving active · tap to turn off" else "saving paused · tap to turn on",
-                                fontSize = 10.sp,
-                                color = MinimalGray
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(if (isHistoryEnabled) MinimalRed else MinimalDarkCardBg)
-                                .border(0.5.dp, if (isHistoryEnabled) MinimalRed else MinimalDarkGray, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                        ) {
-                            Text(
-                                text = if (isHistoryEnabled) "ENABLED" else "DISABLED",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isHistoryEnabled) MinimalWhite else MinimalGray
                             )
                         }
                     }
@@ -981,7 +946,7 @@ fun HubScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showExportSheet = false }) {
-                    Text(text = "close", color = MinimalWhite)
+                    Text(text = "Close", color = MinimalWhite)
                 }
             },
             containerColor = MinimalCardBg
@@ -989,6 +954,7 @@ fun HubScreen(
     }
 }
 
+// ── Now Playing Card ────────────────────────────────────────────────
 @Composable
 private fun MinimalNowPlayingCard(
     track: MediaTrackInfo,
@@ -1007,7 +973,7 @@ private fun MinimalNowPlayingCard(
             .padding(14.dp)
     ) {
         Column {
-            // Header: Status indicator and App label
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1068,7 +1034,7 @@ private fun MinimalNowPlayingCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Playback controls row: Prev, Play/Pause toggle, Next
+            // Playback controls row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -1088,7 +1054,6 @@ private fun MinimalNowPlayingCard(
 
                 Spacer(modifier = Modifier.width(20.dp))
 
-                // Play / Pause tactile toggle ("music on off if music playing")
                 Box(
                     modifier = Modifier
                         .size(42.dp)
@@ -1124,6 +1089,7 @@ private fun MinimalNowPlayingCard(
     }
 }
 
+// ── Notification Item Card ──────────────────────────────────────────
 @Composable
 private fun MinimalHubNotificationCard(
     item: NotificationItem,
@@ -1226,6 +1192,7 @@ private fun MinimalHubNotificationCard(
     }
 }
 
+// ── Helpers ─────────────────────────────────────────────────────────
 private fun formatRelativeTimestamp(timestamp: Long): String {
     val diff = System.currentTimeMillis() - timestamp
     val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
