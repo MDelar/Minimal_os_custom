@@ -54,6 +54,7 @@ fun CommandHistoryChatStream(
     currentQuery: String,
     onSelectCommand: (String) -> Unit,
     onClearHistory: (() -> Unit)? = null,
+    onToggleVisibility: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -103,6 +104,23 @@ fun CommandHistoryChatStream(
                     fontFamily = FontFamily.Monospace,
                     color = MinimalDarkGray
                 )
+                if (onToggleVisibility != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "HIDE",
+                        fontSize = 9.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = MinimalRed,
+                        letterSpacing = 0.5.sp,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(MinimalDarkCardBg)
+                            .border(0.5.dp, MinimalDarkGray, RoundedCornerShape(4.dp))
+                            .clickable { onToggleVisibility() }
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
                 if (history.isNotEmpty() && onClearHistory != null) {
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(

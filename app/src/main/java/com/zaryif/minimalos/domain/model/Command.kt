@@ -15,12 +15,15 @@ enum class CommandType(val symbol: Char, val displayName: String) {
     YOUTUBE('$', "youtube"),
     POMODORO('%', "pomodoro"),
     UNINSTALL('/', "uninstall"),
+    PIN('\u0000', "pin"),
+    UNPIN('\u0000', "unpin"),
+    QUICK_NOTE('\u0000', "quick note"),
     HELP('~', "help"),
     SEARCH('\u0000', "search");
 
     companion object {
         fun fromSymbol(char: Char): CommandType? {
-            return entries.find { it.symbol == char }
+            return entries.find { it.symbol != '\u0000' && it.symbol == char }
         }
     }
 }

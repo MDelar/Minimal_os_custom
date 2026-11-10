@@ -1,9 +1,15 @@
 package com.zaryif.minimalos.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,10 +23,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,15 +51,39 @@ fun MinimalCard(
     isSelected: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
-    val borderColor = if (isSelected) MinimalRed else MinimalDarkGray
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && onClick != null) 0.98f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.75f, stiffness = 600f),
+        label = "cardPressScale"
+    )
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (isSelected) MinimalRed else MinimalDarkGray,
+        animationSpec = tween(200),
+        label = "cardBorderColor"
+    )
     val shape = RoundedCornerShape(12.dp)
 
     val boxModifier = modifier
         .fillMaxWidth()
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
         .clip(shape)
         .background(MinimalCardBg)
-        .border(BorderStroke(1.dp, borderColor), shape)
-        .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+        .border(BorderStroke(1.dp, animatedBorderColor), shape)
+        .then(
+            if (onClick != null) {
+                Modifier.clickable(
+                    interactionSource = interactionSource,
+                    indication = null
+                ) { onClick() }
+            } else {
+                Modifier
+            }
+        )
         .padding(horizontal = 16.dp, vertical = 14.dp)
 
     Box(modifier = boxModifier) {

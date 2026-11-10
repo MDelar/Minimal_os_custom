@@ -2,9 +2,14 @@ package com.zaryif.minimalos.ui.components
 
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetManager
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -82,6 +88,10 @@ fun MinimalDynamicHomeWidgets(
     onOpenCalendar: () -> Unit,
     onOpenClock: () -> Unit = {},
     onLaunchApp: (AppInfo) -> Unit,
+    quickNoteText: String = "",
+    onQuickNoteChange: (String) -> Unit = {},
+    onClearQuickNote: () -> Unit = {},
+    onOpenQuickNote: () -> Unit = {},
     onAddHomeWidget: (() -> Unit)?,
     onDeleteHomeWidget: ((Int) -> Unit)?,
     modifier: Modifier = Modifier
@@ -108,6 +118,15 @@ fun MinimalDynamicHomeWidgets(
                         notes = notes,
                         initialShowAll = showAllNotesPreference,
                         onOpenMemo = onOpenMemo
+                    )
+                }
+
+                "QUICK_NOTE" -> {
+                    MinimalHomeQuickNoteWidget(
+                        quickNoteText = quickNoteText,
+                        onNoteChange = onQuickNoteChange,
+                        onClear = onClearQuickNote,
+                        onOpenFullScreen = onOpenQuickNote
                     )
                 }
 
@@ -265,6 +284,7 @@ fun MinimalHomeNotesWidget(
         Box(
             modifier = modifier
                 .fillMaxWidth()
+                .animateContentSize(animationSpec = spring(dampingRatio = 0.82f, stiffness = 400f))
                 .clip(RoundedCornerShape(12.dp))
                 .background(MinimalCardBg)
                 .border(1.dp, MinimalDarkGray, RoundedCornerShape(12.dp))
@@ -410,13 +430,27 @@ fun MinimalHomeShortcutsWidget(
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         favoriteApps.forEach { app ->
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.93f else 1.0f,
+                animationSpec = spring(dampingRatio = 0.75f, stiffness = 600f),
+                label = "shortcutChipScale"
+            )
             Box(
                 modifier = Modifier
                     .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    }
                     .clip(RoundedCornerShape(8.dp))
                     .background(MinimalDarkCardBg)
                     .border(1.dp, MinimalDarkGray, RoundedCornerShape(8.dp))
-                    .clickable { onLaunchApp(app) }
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null
+                    ) { onLaunchApp(app) }
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Text(
@@ -523,11 +557,18 @@ fun MinimalHomeAlarmCountdownWidget(
     }
 
     LaunchedEffect(Unit) {
+        hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
+        triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
+        var ticks = 0
         while (true) {
-            hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
-            triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
             currentTime = System.currentTimeMillis()
             delay(1000)
+            ticks++
+            if (ticks >= 30) {
+                ticks = 0
+                hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
+                triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
+            }
         }
     }
 

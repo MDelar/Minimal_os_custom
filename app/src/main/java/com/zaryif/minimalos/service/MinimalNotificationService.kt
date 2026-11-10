@@ -2,25 +2,38 @@ package com.zaryif.minimalos.service
 
 import android.app.Notification
 import android.content.Context
-import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationManagerCompat
+import com.zaryif.minimalos.data.preferences.UserPreferences
+import com.zaryif.minimalos.data.repository.NotificationHistoryRepository
+import com.zaryif.minimalos.domain.media.MinimalMediaManager
 import com.zaryif.minimalos.domain.model.NotificationCategory
 import com.zaryif.minimalos.domain.model.NotificationItem
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MinimalNotificationService : NotificationListenerService() {
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private lateinit var userPreferences: UserPreferences
 
     override fun onCreate() {
         super.onCreate()
         instance = this
+        userPreferences = UserPreferences(this)
+        MinimalMediaManager.init(this)
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        MinimalMediaManager.cleanup()
         if (instance == this) instance = null
     }
 
@@ -28,16 +41,23 @@ class MinimalNotificationService : NotificationListenerService() {
         super.onListenerConnected()
         instance = this
         refreshActiveNotifications()
+        MinimalMediaManager.init(this)
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
-        sbn?.let { addNotification(it) }
+        sbn?.let {
+            addNotification(it)
+            MinimalMediaManager.refresh(this)
+        }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
         super.onNotificationRemoved(sbn)
-        sbn?.let { removeNotification(it.key) }
+        sbn?.let {
+            removeNotification(it.key)
+            MinimalMediaManager.refresh(this)
+        }
     }
 
     private fun addNotification(sbn: StatusBarNotification) {
@@ -65,6 +85,13 @@ class MinimalNotificationService : NotificationListenerService() {
 
         val current = _notifications.value.filterNot { it.key == sbn.key }
         _notifications.value = listOf(item) + current
+
+        // Persist notification locally so history is never lost (if enabled by user)
+        serviceScope.launch {
+            if (userPreferences.notificationHistoryEnabled.first()) {
+                NotificationHistoryRepository.getInstance(this@MinimalNotificationService).saveNotification(item)
+            }
+        }
     }
 
     private fun removeNotification(key: String) {
@@ -82,6 +109,7 @@ class MinimalNotificationService : NotificationListenerService() {
         try {
             val active = activeNotifications ?: return
             val list = mutableListOf<NotificationItem>()
+            val historyRepo = NotificationHistoryRepository.getInstance(this)
             for (sbn in active) {
                 val extras = sbn.notification.extras
                 val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
@@ -91,21 +119,26 @@ class MinimalNotificationService : NotificationListenerService() {
                 if (pkg == packageName) continue
 
                 val category = categorize(pkg, sbn.notification.category)
-                list.add(
-                    NotificationItem(
-                        id = sbn.id,
-                        key = sbn.key,
-                        appName = getAppName(pkg),
-                        title = title,
-                        content = text,
-                        timestamp = sbn.postTime,
-                        packageName = pkg,
-                        category = category,
-                        pendingIntent = sbn.notification.contentIntent
-                    )
+                val item = NotificationItem(
+                    id = sbn.id,
+                    key = sbn.key,
+                    appName = getAppName(pkg),
+                    title = title,
+                    content = text,
+                    timestamp = sbn.postTime,
+                    packageName = pkg,
+                    category = category,
+                    pendingIntent = sbn.notification.contentIntent
                 )
+                list.add(item)
             }
             _notifications.value = list.sortedByDescending { it.timestamp }
+
+            serviceScope.launch {
+                if (userPreferences.notificationHistoryEnabled.first()) {
+                    historyRepo.saveNotifications(list)
+                }
+            }
         } catch (_: Exception) {}
     }
 
@@ -163,6 +196,14 @@ class MinimalNotificationService : NotificationListenerService() {
                 _notifications.value = _notifications.value.filterNot { it.key == key }
             }
         }
+
+        fun dismissAll() {
+            instance?.let { service ->
+                try {
+                    service.cancelAllNotifications()
+                } catch (_: Exception) {}
+            }
+            _notifications.value = emptyList()
+        }
     }
 }
-
