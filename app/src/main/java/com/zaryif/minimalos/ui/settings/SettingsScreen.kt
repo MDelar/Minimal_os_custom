@@ -137,6 +137,8 @@ fun SettingsScreen(
     // Preferences collection
     val assistantPackage by userPreferences.assistantPackage.collectAsState(initial = null)
     val showCommandFeedback by userPreferences.showCommandFeedback.collectAsState(initial = false)
+    val showCommandBar by userPreferences.showCommandBar.collectAsState(initial = true)
+    val showCommandHelperIcon by userPreferences.showCommandHelperIcon.collectAsState(initial = true)
     val customWallpaperUri by userPreferences.customWallpaperUri.collectAsState(initial = null)
     val favoriteAppPackages by userPreferences.favoriteApps.collectAsState(initial = emptySet())
     val currentThemeId by userPreferences.themeId.collectAsState(initial = "AMOLED_RED")
@@ -1077,6 +1079,48 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsGroupCard {
+                    // Item 0a: Show Command Bar on Home
+                    SettingsItemRow(
+                        icon = Icons.Default.Terminal,
+                        title = AppStrings.settingsShowCommandBarTitle,
+                        subtitle = AppStrings.settingsShowCommandBarDesc,
+                        trailingContent = {
+                            Switch(
+                                checked = showCommandBar,
+                                onCheckedChange = { scope.launch { userPreferences.setShowCommandBar(it) } },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MinimalWhite,
+                                    checkedTrackColor = MinimalRed,
+                                    uncheckedThumbColor = MinimalGray,
+                                    uncheckedTrackColor = MinimalDarkCardBg
+                                )
+                            )
+                        }
+                    )
+
+                    SettingsInsetDivider()
+
+                    // Item 0b: Command Helper Icon
+                    SettingsItemRow(
+                        icon = Icons.AutoMirrored.Filled.HelpOutline,
+                        title = AppStrings.settingsCommandHelperIconTitle,
+                        subtitle = AppStrings.settingsCommandHelperIconDesc,
+                        trailingContent = {
+                            Switch(
+                                checked = showCommandHelperIcon,
+                                onCheckedChange = { scope.launch { userPreferences.setShowCommandHelperIcon(it) } },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MinimalWhite,
+                                    checkedTrackColor = MinimalRed,
+                                    uncheckedThumbColor = MinimalGray,
+                                    uncheckedTrackColor = MinimalDarkCardBg
+                                )
+                            )
+                        }
+                    )
+
+                    SettingsInsetDivider()
+
                     // Item 1: Custom Command Aliases
                     SettingsItemRow(
                         icon = Icons.Default.Terminal,

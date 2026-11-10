@@ -117,6 +117,7 @@ fun CommandBar(
     hasContactPermission: Boolean = true,
     onRequestContactPermission: (() -> Unit)? = null,
     onHelpRequested: (() -> Unit)? = null,
+    showHelperIcon: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -677,7 +678,7 @@ fun CommandBar(
                 }
 
                 // Help or Clear / Execute buttons
-                if (query.isEmpty() && onHelpRequested != null) {
+                if (showHelperIcon && query.isEmpty() && onHelpRequested != null) {
                     IconButton(
                         onClick = onHelpRequested,
                         modifier = Modifier.size(30.dp)

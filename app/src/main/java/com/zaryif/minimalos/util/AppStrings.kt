@@ -131,6 +131,10 @@ object AppStrings {
 
     // Section 4: Command Bar & History
     var settingsSecCommand = "COMMAND BAR & SHORTCUTS"
+    var settingsShowCommandBarTitle = "Show Command Bar"
+    var settingsShowCommandBarDesc = "Display interactive command box at bottom of home screen"
+    var settingsCommandHelperIconTitle = "Command Helper Icon"
+    var settingsCommandHelperIconDesc = "Show '?' cheat sheet button inside command box"
     var settingsAliasesTitle = "Command Aliases"
     var settingsFeedbackTitle = "Action Confirmation Popups"
     var settingsFeedbackDesc = "Show transient 'Saved task' / 'Saved note' banner"

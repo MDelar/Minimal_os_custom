@@ -42,6 +42,8 @@ class UserPreferences(private val context: Context) {
         private val HOME_SHOW_ALL_TODOS = booleanPreferencesKey("home_show_all_todos")
         private val HOME_SHOW_ALL_NOTES = booleanPreferencesKey("home_show_all_notes")
         private val SHOW_COMMAND_FEEDBACK = booleanPreferencesKey("show_command_feedback")
+        private val SHOW_COMMAND_BAR = booleanPreferencesKey("show_command_bar")
+        private val SHOW_COMMAND_HELPER_ICON = booleanPreferencesKey("show_command_helper_icon")
         private val POMODORO_WORK_MINUTES = intPreferencesKey("pomodoro_work_minutes")
         private val POMODORO_BREAK_MINUTES = intPreferencesKey("pomodoro_break_minutes")
         private val ASSISTANT_PACKAGE = stringPreferencesKey("assistant_package")
@@ -265,6 +267,24 @@ class UserPreferences(private val context: Context) {
     suspend fun setShowCommandFeedback(show: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[SHOW_COMMAND_FEEDBACK] = show
+        }
+    }
+
+    val showCommandBar: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[SHOW_COMMAND_BAR] ?: true }
+
+    suspend fun setShowCommandBar(show: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[SHOW_COMMAND_BAR] = show
+        }
+    }
+
+    val showCommandHelperIcon: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[SHOW_COMMAND_HELPER_ICON] ?: true }
+
+    suspend fun setShowCommandHelperIcon(show: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[SHOW_COMMAND_HELPER_ICON] = show
         }
     }
 

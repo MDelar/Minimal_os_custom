@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -43,6 +42,7 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Phone
@@ -363,7 +363,7 @@ fun HubScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ── Mode Switcher & Filter Row ──────────────────────────
+            // ── Mode Switcher & Filter Row (Zero Horizontal Scroll, Fits All Screens) ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -372,9 +372,9 @@ fun HubScreen(
                 // Segmented Control Capsule (Live / Archive)
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(9.dp))
                         .background(MinimalDarkCardBg)
-                        .padding(3.dp),
+                        .padding(2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val liveCount = liveNotifications.size
@@ -383,15 +383,15 @@ fun HubScreen(
                     // Live Tab
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(7.dp))
                             .background(if (!isArchiveMode) MinimalCardBg else Color.Transparent)
                             .clickable { isArchiveMode = false }
-                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                            .padding(horizontal = 11.dp, vertical = 5.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (liveCount > 0) "${AppStrings.hubTabLive} ($liveCount)" else AppStrings.hubTabLive,
-                            fontSize = 12.sp,
+                            text = if (liveCount > 0) "${AppStrings.hubTabLive} $liveCount" else AppStrings.hubTabLive,
+                            fontSize = 11.sp,
                             fontWeight = if (!isArchiveMode) FontWeight.SemiBold else FontWeight.Normal,
                             color = if (!isArchiveMode) MinimalWhite else MinimalGray
                         )
@@ -400,46 +400,53 @@ fun HubScreen(
                     // Archive Tab
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(7.dp))
                             .background(if (isArchiveMode) MinimalCardBg else Color.Transparent)
                             .clickable { isArchiveMode = true }
-                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                            .padding(horizontal = 11.dp, vertical = 5.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (archiveCount > 0) "${AppStrings.hubTabArchive} ($archiveCount)" else AppStrings.hubTabArchive,
-                            fontSize = 12.sp,
+                            text = if (archiveCount > 0) "${AppStrings.hubTabArchive} $archiveCount" else AppStrings.hubTabArchive,
+                            fontSize = 11.sp,
                             fontWeight = if (isArchiveMode) FontWeight.SemiBold else FontWeight.Normal,
                             color = if (isArchiveMode) MinimalWhite else MinimalGray
                         )
                     }
                 }
 
-                // Category Filter Pills
+                // Category Filter Icons (ALL, MESSAGE, CALLS, EMAIL) - No swiping needed
                 Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     categories.forEach { cat ->
                         val isSelected = cat == selectedCategory
+                        val (icon, label) = when (cat) {
+                            NotificationCategory.ALL -> Icons.Default.Notifications to "All"
+                            NotificationCategory.MESSAGE -> Icons.Default.ChatBubbleOutline to "Messages"
+                            NotificationCategory.CALLS -> Icons.Default.Phone to "Calls"
+                            NotificationCategory.EMAIL -> Icons.Default.Email to "Email"
+                        }
+
                         Box(
                             modifier = Modifier
+                                .size(30.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(if (isSelected) MinimalCardBg else Color.Transparent)
                                 .border(
                                     1.dp,
-                                    if (isSelected) MinimalDarkGray else Color.Transparent,
+                                    if (isSelected) MinimalRed.copy(alpha = 0.8f) else MinimalDarkGray.copy(alpha = 0.4f),
                                     RoundedCornerShape(8.dp)
                                 )
-                                .clickable { selectedCategory = cat }
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .clickable { selectedCategory = cat },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = cat.displayName,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) MinimalWhite else MinimalGray
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = label,
+                                tint = if (isSelected) MinimalWhite else MinimalGray,
+                                modifier = Modifier.size(15.dp)
                             )
                         }
                     }

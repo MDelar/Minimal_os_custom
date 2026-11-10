@@ -85,8 +85,6 @@ fun MinimalMemoSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val userPreferences = remember { UserPreferences(context) }
-    val quickNote by userPreferences.quickNote.collectAsState(initial = "")
     val notes by storageRepository.notes.collectAsState()
     val todos by storageRepository.todos.collectAsState()
 
@@ -188,7 +186,7 @@ fun MinimalMemoSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tabs Segmented Switcher: TASKS vs NOTES vs QUICK NOTE
+            // Tabs Segmented Switcher: TASKS vs NOTES
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -233,208 +231,16 @@ fun MinimalMemoSheet(
                         color = if (selectedTab == "NOTES") MinimalWhite else MinimalGray
                     )
                 }
-
-                // Quick Note (Pinned Notification) Tab
-                Box(
-                    modifier = Modifier
-                        .weight(1.1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (selectedTab == "QUICK_NOTE") MinimalCardBg else androidx.compose.ui.graphics.Color.Transparent)
-                        .clickable { selectedTab = "QUICK_NOTE" }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PushPin,
-                            contentDescription = null,
-                            tint = if (selectedTab == "QUICK_NOTE") MinimalRed else MinimalGray,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = AppStrings.memoTabQuickNote,
-                            fontSize = 12.sp,
-                            fontWeight = if (selectedTab == "QUICK_NOTE") FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (selectedTab == "QUICK_NOTE") MinimalWhite else MinimalGray
-                        )
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // TAB 1: QUICK NOTE (Pinned to Status Bar + AI Assistant Summary)
-            if (selectedTab == "QUICK_NOTE") {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    // Status row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(if (quickNote.isNotBlank()) MinimalRed else MinimalDarkGray)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (quickNote.isNotBlank()) AppStrings.memoPinnedActive else AppStrings.memoPinnedEmpty,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (quickNote.isNotBlank()) MinimalRed else MinimalGray,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-
-                        if (quickNote.isNotBlank()) {
-                            Text(
-                                text = AppStrings.quickNoteClearBtn,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MinimalGray,
-                                modifier = Modifier
-                                    .clickable {
-                                        scope.launch {
-                                            userPreferences.setQuickNote("")
-                                            QuickNoteManager.cancelNotification(context)
-                                        }
-                                    }
-                                    .padding(vertical = 4.dp, horizontal = 6.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Text Editor Box
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MinimalDarkCardBg.copy(alpha = 0.5f))
-                            .border(1.dp, MinimalDarkGray, RoundedCornerShape(12.dp))
-                            .padding(16.dp)
-                    ) {
-                        BasicTextField(
-                            value = quickNote,
-                            onValueChange = { newText ->
-                                if (newText.contains("\n")) {
-                                    val cleanText = newText.replace("\n", "").trim()
-                                    scope.launch { userPreferences.setQuickNote(cleanText) }
-                                    if (cleanText.isNotBlank()) {
-                                        QuickNoteManager.postNotification(context, cleanText)
-                                    } else {
-                                        QuickNoteManager.cancelNotification(context)
-                                    }
-                                } else {
-                                    scope.launch { userPreferences.setQuickNote(newText) }
-                                }
-                            },
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    val trimmed = quickNote.trim()
-                                    if (trimmed.isNotBlank()) {
-                                        QuickNoteManager.postNotification(context, trimmed)
-                                    } else {
-                                        QuickNoteManager.cancelNotification(context)
-                                    }
-                                }
-                            ),
-                            textStyle = TextStyle(
-                                color = MinimalWhite,
-                                fontSize = 15.sp,
-                                lineHeight = 22.sp,
-                                fontFamily = FontFamily.SansSerif
-                            ),
-                            cursorBrush = SolidColor(MinimalRed),
-                            modifier = Modifier.fillMaxSize(),
-                            decorationBox = { innerTextField ->
-                                if (quickNote.isEmpty()) {
-                                    Text(
-                                        text = AppStrings.memoQuickNotePlaceholder,
-                                        color = MinimalDarkGray,
-                                        fontSize = 14.sp,
-                                        lineHeight = 21.sp
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 1-Tap Quick Action: Send Note to Assistant with Summarizing Prompt
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (quickNote.isNotBlank()) MinimalCardBg else MinimalDarkCardBg)
-                            .border(
-                                1.dp,
-                                if (quickNote.isNotBlank()) MinimalRed.copy(alpha = 0.6f) else MinimalDarkGray,
-                                RoundedCornerShape(10.dp)
-                            )
-                            .clickable(enabled = quickNote.isNotBlank()) {
-                                scope.launch {
-                                    val currentAssistant = userPreferences.assistantPackage.first()
-                                    NotificationExporter.shareTextWithAssistant(
-                                        context = context,
-                                        text = quickNote,
-                                        promptPrefix = AppStrings.quickNoteAiPromptPrefix,
-                                        assistantPackage = currentAssistant
-                                    )
-                                }
-                            }
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = if (quickNote.isNotBlank()) MinimalRed else MinimalGray,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = AppStrings.memoSummarizeWithAi,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (quickNote.isNotBlank()) MinimalWhite else MinimalGray
-                            )
-                        }
-
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = if (quickNote.isNotBlank()) MinimalRed else MinimalDarkGray,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            } else {
-                // TAB 2 & 3: TASKS / NOTES
-                // 1. Search Box
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
+            // 1. Search Box
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
                         .background(MinimalDarkCardBg)
                         .border(1.dp, MinimalDarkGray, RoundedCornerShape(10.dp))
                         .padding(horizontal = 12.dp),
@@ -676,7 +482,6 @@ fun MinimalMemoSheet(
                         }
                     }
                 }
-            }
         } // End Column
     } // End ModalBottomSheet
 
