@@ -9,11 +9,19 @@ import android.net.Uri
 import android.provider.CalendarContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,8 +44,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -58,6 +68,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,6 +79,7 @@ import com.zaryif.minimalos.data.repository.ContactRepository
 import com.zaryif.minimalos.data.repository.StorageRepository
 import com.zaryif.minimalos.domain.model.AppInfo
 import com.zaryif.minimalos.domain.model.Contact
+import com.zaryif.minimalos.domain.quicknote.QuickNoteManager
 import com.zaryif.minimalos.domain.usecase.CommandResult
 import com.zaryif.minimalos.domain.usecase.ExecuteCommandUseCase
 import com.zaryif.minimalos.ui.components.CommandBar
@@ -76,7 +88,10 @@ import com.zaryif.minimalos.ui.components.CommandHistoryChatStream
 import com.zaryif.minimalos.ui.components.MinimalDynamicHomeWidgets
 import com.zaryif.minimalos.ui.components.MinimalLiveTimerCard
 import com.zaryif.minimalos.ui.components.MinimalNotificationBanner
+import com.zaryif.minimalos.ui.components.MinimalQuickNoteBlackSpaceSheet
 import com.zaryif.minimalos.ui.theme.MinimalBlack
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.zaryif.minimalos.ui.theme.MinimalCardBg
 import com.zaryif.minimalos.ui.theme.MinimalDarkCardBg
 import com.zaryif.minimalos.ui.theme.MinimalDarkGray
@@ -124,10 +139,12 @@ fun HomeScreen(
     val commandHistoryEnabled by userPreferences.commandHistoryEnabled.collectAsState(initial = true)
     val commandHistory by userPreferences.commandHistory.collectAsState(initial = emptyList())
     val customCommands by userPreferences.customCommands.collectAsState(initial = emptyMap())
+    val quickNote by userPreferences.quickNote.collectAsState(initial = "")
 
     val scope = rememberCoroutineScope()
     var notificationMessage by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
+    var showQuickNoteSheet by remember { mutableStateOf(false) }
     var matchingApps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
     var matchingContacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
     var showHelpDialog by remember { mutableStateOf(false) }
@@ -144,6 +161,14 @@ fun HomeScreen(
 
     val favoriteApps = remember(favoriteAppPackages, installedApps) {
         installedApps.filter { it.packageName in favoriteAppPackages }
+    }
+
+    LaunchedEffect(Unit) {
+        val activity = context as? android.app.Activity
+        if (activity?.intent?.getBooleanExtra(QuickNoteManager.EXTRA_OPEN_QUICK_NOTE, false) == true) {
+            showQuickNoteSheet = true
+            activity.intent?.removeExtra(QuickNoteManager.EXTRA_OPEN_QUICK_NOTE)
+        }
     }
 
     // Live clock
@@ -184,7 +209,9 @@ fun HomeScreen(
                 else -> ""
             }
             if (hasContactPermission) {
-                contactRepository.searchContacts(contactQuery)
+                withContext(Dispatchers.IO) {
+                    contactRepository.searchContacts(contactQuery)
+                }
             } else {
                 emptyList()
             }
@@ -204,6 +231,22 @@ fun HomeScreen(
             else -> ""
         }
 
+        val isPinCommand = lower.startsWith("pin ") || lower == "pin" ||
+                lower.startsWith("fav ") || lower == "fav"
+        val pinQuery = when {
+            lower.startsWith("pin ") -> lower.substring(4).trim()
+            lower.startsWith("fav ") -> lower.substring(4).trim()
+            else -> ""
+        }
+
+        val isUnpinCommand = lower.startsWith("unpin ") || lower == "unpin" ||
+                lower.startsWith("unfav ") || lower == "unfav"
+        val unpinQuery = when {
+            lower.startsWith("unpin ") -> lower.substring(6).trim()
+            lower.startsWith("unfav ") -> lower.substring(6).trim()
+            else -> ""
+        }
+
         matchingApps = if (isUninstallCommand) {
             if (uninstallQuery.isNotEmpty()) {
                 installedApps.filter {
@@ -213,6 +256,25 @@ fun HomeScreen(
             } else {
                 installedApps.take(10)
             }
+        } else if (isPinCommand) {
+            if (pinQuery.isNotEmpty()) {
+                installedApps.filter {
+                    it.label.lowercase().contains(pinQuery) ||
+                    it.packageName.lowercase().contains(pinQuery)
+                }
+            } else {
+                installedApps.take(10)
+            }
+        } else if (isUnpinCommand) {
+            val favs = installedApps.filter { it.packageName in favoriteAppPackages }
+            if (unpinQuery.isNotEmpty()) {
+                favs.filter {
+                    it.label.lowercase().contains(unpinQuery) ||
+                    it.packageName.lowercase().contains(unpinQuery)
+                }
+            } else {
+                favs.take(10)
+            }
         } else if (query.isNotBlank() && !query.startsWith("@") &&
             !query.startsWith("#") && !query.startsWith("-") &&
             !query.startsWith("!") && !query.startsWith("*") &&
@@ -221,6 +283,8 @@ fun HomeScreen(
             !query.startsWith("&") && !query.startsWith("=") &&
             !query.startsWith("$") && !query.startsWith("%") &&
             !query.startsWith("/") &&
+            !lower.startsWith("pin ") && !lower.startsWith("unpin ") &&
+            !lower.startsWith("fav ") && !lower.startsWith("unfav ") &&
             !lower.startsWith("call ") && !lower.startsWith("dial ") &&
             !lower.startsWith("msg ") && !lower.startsWith("sms ") &&
             !lower.startsWith("wa ") && !lower.startsWith("whatsapp ") &&
@@ -311,8 +375,18 @@ fun HomeScreen(
                                 BitmapFactory.decodeFile(file.absolutePath, decodeOpts)
                             } else {
                                 val uri = Uri.parse(path)
+                                val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                                 context.contentResolver.openInputStream(uri)?.use { stream ->
-                                    BitmapFactory.decodeStream(stream)
+                                    BitmapFactory.decodeStream(stream, null, opts)
+                                }
+                                var sampleSize = 1
+                                val maxDim = 2048
+                                while (opts.outWidth / sampleSize > maxDim || opts.outHeight / sampleSize > maxDim) {
+                                    sampleSize *= 2
+                                }
+                                val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                                context.contentResolver.openInputStream(uri)?.use { stream ->
+                                    BitmapFactory.decodeStream(stream, null, decodeOpts)
                                 }
                             }
                         } catch (_: Exception) {
@@ -343,13 +417,11 @@ fun HomeScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .pointerInput(Unit) {
-                    detectDragGestures { _, dragAmount ->
-                        val (x, y) = dragAmount
+                    detectHorizontalDragGestures { _, dragAmount ->
                         if (!isTyping) {
-                            // Clear horizontal swipes for Hub / Widgets Deck
-                            if (x > 50 && kotlin.math.abs(x) > kotlin.math.abs(y) * 1.5f) {
+                            if (dragAmount > 30) {
                                 onNavigateToHub()
-                            } else if (x < -50 && kotlin.math.abs(x) > kotlin.math.abs(y) * 1.5f) {
+                            } else if (dragAmount < -30) {
                                 onNavigateToWidgets()
                             }
                         }
@@ -414,94 +486,172 @@ fun HomeScreen(
             }
 
             // 2. Center Area: WEIGHT(1f) ensures it shrinks when keyboard opens so suggestions and CommandBar are NEVER cut off
-            if (!isTyping) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Full home screen widgets & large clock
+            AnimatedContent(
+                targetState = isTyping,
+                transitionSpec = {
+                    if (targetState) {
+                        (fadeIn(tween(180)) + slideInVertically(tween(200, easing = LinearOutSlowInEasing)) { it / 30 })
+                            .togetherWith(fadeOut(tween(120)))
+                    } else {
+                        (fadeIn(tween(200)) + slideInVertically(tween(220, easing = LinearOutSlowInEasing)) { -it / 30 })
+                            .togetherWith(fadeOut(tween(140)))
+                    }
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                label = "CenterAreaTypingTransition"
+            ) { typing ->
+                if (!typing) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Full home screen widgets & large clock
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState()),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = currentTime,
+                                fontSize = 72.sp,
+                                fontWeight = FontWeight.Light,
+                                letterSpacing = (-2).sp,
+                                color = MinimalWhite
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = currentDate,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = MinimalGray
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Live countdown card for active Pomodoro or Timer sessions
+                            // Only display if Pomodoro is not already a configured home widget to avoid duplicate cards
+                            val hasPomodoroHomeWidget = homeWidgetsOrder.any { it in listOf("POMODORO", "TIMERS", "LIVE_TIMER") }
+                            if (!hasPomodoroHomeWidget) {
+                                MinimalLiveTimerCard(modifier = Modifier.padding(bottom = 12.dp))
+                            }
+
+                            // Dynamic Customizable Home Screen Widgets
+                            MinimalDynamicHomeWidgets(
+                                widgetsOrder = homeWidgetsOrder,
+                                todos = todos,
+                                notes = notes,
+                                favoriteApps = favoriteApps,
+                                homeSystemWidgetIds = homeSystemWidgets,
+                                appWidgetManager = appWidgetManager,
+                                appWidgetHost = appWidgetHost,
+                                showAllTodosPreference = showAllTodosPref,
+                                showAllNotesPreference = showAllNotesPref,
+                                onToggleTodo = { id -> storageRepository.toggleTodo(id) },
+                                onOpenMemo = onOpenMemo,
+                                onOpenCalendar = {
+                                    val calIntent = Intent(Intent.ACTION_VIEW).apply {
+                                        data = CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build()
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    }
+                                    try {
+                                        context.startActivity(calIntent)
+                                    } catch (_: Exception) {}
+                                },
+                                onOpenClock = onOpenClock,
+                                onLaunchApp = { app ->
+                                    try {
+                                        val intent = context.packageManager.getLaunchIntentForPackage(app.packageName)
+                                        intent?.let { context.startActivity(it) }
+                                    } catch (_: Exception) {}
+                                },
+                                quickNoteText = quickNote,
+                                onQuickNoteChange = { text ->
+                                    scope.launch { userPreferences.setQuickNote(text) }
+                                },
+                                onClearQuickNote = {
+                                    scope.launch {
+                                        userPreferences.setQuickNote("")
+                                        QuickNoteManager.cancelNotification(context)
+                                    }
+                                },
+                                onOpenQuickNote = { showQuickNoteSheet = true },
+                                onAddHomeWidget = onAddHomeWidget,
+                                onDeleteHomeWidget = onDeleteHomeWidget
+                            )
+                        }
+                    }
+                } else if (commandHistoryEnabled) {
+                    CommandHistoryChatStream(
+                        history = commandHistory,
+                        currentQuery = query,
+                        onSelectCommand = { selected ->
+                            query = selected
+                        },
+                        onClearHistory = {
+                            scope.launch {
+                                userPreferences.clearCommandHistory()
+                            }
+                        },
+                        onToggleVisibility = {
+                            scope.launch {
+                                userPreferences.setCommandHistoryEnabled(false)
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // Terminal buffer is hidden: show a minimal compact bar with SHOW toggle
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState()),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .fillMaxSize()
+                            .padding(horizontal = 4.dp, vertical = 6.dp)
                     ) {
-                        Text(
-                            text = currentTime,
-                            fontSize = 72.sp,
-                            fontWeight = FontWeight.Light,
-                            letterSpacing = (-2).sp,
-                            color = MinimalWhite
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = currentDate,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = MinimalGray
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // Live countdown card for active Pomodoro or Timer sessions
-                        // Only display if Pomodoro is not already a configured home widget to avoid duplicate cards
-                        val hasPomodoroHomeWidget = homeWidgetsOrder.any { it in listOf("POMODORO", "TIMERS", "LIVE_TIMER") }
-                        if (!hasPomodoroHomeWidget) {
-                            MinimalLiveTimerCard(modifier = Modifier.padding(bottom = 12.dp))
-                        }
-
-                        // Dynamic Customizable Home Screen Widgets
-                        MinimalDynamicHomeWidgets(
-                            widgetsOrder = homeWidgetsOrder,
-                            todos = todos,
-                            notes = notes,
-                            favoriteApps = favoriteApps,
-                            homeSystemWidgetIds = homeSystemWidgets,
-                            appWidgetManager = appWidgetManager,
-                            appWidgetHost = appWidgetHost,
-                            showAllTodosPreference = showAllTodosPref,
-                            showAllNotesPreference = showAllNotesPref,
-                            onToggleTodo = { id -> storageRepository.toggleTodo(id) },
-                            onOpenMemo = onOpenMemo,
-                            onOpenCalendar = {
-                                val calIntent = Intent(Intent.ACTION_VIEW).apply {
-                                    data = CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build()
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MinimalDarkCardBg.copy(alpha = 0.5f))
+                                .border(1.dp, MinimalDarkGray.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .clickable {
+                                    scope.launch {
+                                        userPreferences.setCommandHistoryEnabled(true)
+                                    }
                                 }
-                                try {
-                                    context.startActivity(calIntent)
-                                } catch (_: Exception) {}
-                            },
-                            onOpenClock = onOpenClock,
-                            onLaunchApp = { app ->
-                                val intent = context.packageManager.getLaunchIntentForPackage(app.packageName)
-                                intent?.let { context.startActivity(it) }
-                            },
-                            onAddHomeWidget = onAddHomeWidget,
-                            onDeleteHomeWidget = onDeleteHomeWidget
-                        )
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Terminal,
+                                    contentDescription = null,
+                                    tint = MinimalDarkGray,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "TERMINAL BUFFER HIDDEN",
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = MinimalDarkGray,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                            Text(
+                                text = "SHOW",
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = MinimalRed,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
-            } else if (commandHistoryEnabled) {
-                CommandHistoryChatStream(
-                    history = commandHistory,
-                    currentQuery = query,
-                    onSelectCommand = { selected ->
-                        query = selected
-                    },
-                    onClearHistory = {
-                        scope.launch {
-                            userPreferences.clearCommandHistory()
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                )
-            } else {
-                Spacer(modifier = Modifier.weight(1f))
             }
 
             // 3. Bottom Area: Gesture hints (only when idle) + CommandBar (ALWAYS VISIBLE ABOVE KEYBOARD)
@@ -509,9 +659,8 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .pointerInput(Unit) {
-                        detectDragGestures { _, dragAmount ->
-                            val (x, y) = dragAmount
-                            if (!isTyping && y < -30 && kotlin.math.abs(y) > kotlin.math.abs(x)) {
+                        detectVerticalDragGestures { _, dragAmount ->
+                            if (!isTyping && dragAmount < -30) {
                                 onNavigateToApps()
                             }
                         }
@@ -572,9 +721,20 @@ fun HomeScreen(
                         when (result) {
                             is CommandResult.Success -> {
                                 query = ""
-                                if (showCommandFeedback) {
+                                val isAlwaysFeedback = input.trim().lowercase().let {
+                                    it.startsWith("pin") || it.startsWith("unpin") ||
+                                    it.startsWith("fav") || it.startsWith("unfav") ||
+                                    it.startsWith("uninstall") || it.startsWith("remove") ||
+                                    it.startsWith("alias") || it.startsWith("unalias") ||
+                                    it.startsWith("qn") || it.startsWith("quicknote")
+                                }
+                                if (showCommandFeedback || isAlwaysFeedback) {
                                     notificationMessage = result.message
                                 }
+                            }
+                            is CommandResult.OpenQuickNote -> {
+                                query = ""
+                                showQuickNoteSheet = true
                             }
                             is CommandResult.LaunchedApp -> {
                                 query = ""
@@ -595,9 +755,27 @@ fun HomeScreen(
                                 trimmedLower.startsWith("remove") ||
                                 trimmedLower.startsWith("rmapp") ||
                                 query.trim().startsWith("/")
+                        val isPin = trimmedLower.startsWith("pin") ||
+                                trimmedLower.startsWith("fav")
+                        val isUnpin = trimmedLower.startsWith("unpin") ||
+                                trimmedLower.startsWith("unfav")
                         query = ""
                         if (isUninstall) {
                             val result = executeCommandUseCase.execute("uninstall ${app.packageName}")
+                            when (result) {
+                                is CommandResult.Success -> notificationMessage = result.message
+                                is CommandResult.Error -> notificationMessage = result.error
+                                else -> {}
+                            }
+                        } else if (isPin) {
+                            val result = executeCommandUseCase.execute("pin ${app.packageName}")
+                            when (result) {
+                                is CommandResult.Success -> notificationMessage = result.message
+                                is CommandResult.Error -> notificationMessage = result.error
+                                else -> {}
+                            }
+                        } else if (isUnpin) {
+                            val result = executeCommandUseCase.execute("unpin ${app.packageName}")
                             when (result) {
                                 is CommandResult.Success -> notificationMessage = result.message
                                 is CommandResult.Error -> notificationMessage = result.error
@@ -621,6 +799,11 @@ fun HomeScreen(
                     },
                     commandHistory = commandHistory,
                     isHistoryEnabled = commandHistoryEnabled,
+                    onToggleHistoryEnabled = {
+                        scope.launch {
+                            userPreferences.setCommandHistoryEnabled(!commandHistoryEnabled)
+                        }
+                    },
                     customAliases = customCommands.keys,
                     hasContactPermission = hasContactPermission,
                     onRequestContactPermission = {
@@ -644,6 +827,23 @@ fun HomeScreen(
                 onSelectExample = { example ->
                     query = example
                 }
+            )
+        }
+
+        // Dedicated Distraction-Free Quick Note Black Space Sheet
+        if (showQuickNoteSheet) {
+            MinimalQuickNoteBlackSpaceSheet(
+                quickNoteText = quickNote,
+                onNoteChange = { newText ->
+                    scope.launch { userPreferences.setQuickNote(newText) }
+                },
+                onClear = {
+                    scope.launch {
+                        userPreferences.setQuickNote("")
+                        QuickNoteManager.cancelNotification(context)
+                    }
+                },
+                onDismiss = { showQuickNoteSheet = false }
             )
         }
     }

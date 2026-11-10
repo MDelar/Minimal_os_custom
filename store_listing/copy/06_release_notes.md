@@ -1,4 +1,4 @@
-# Minimal OS Release Notes - v1.9.4 (Build 25)
+# Minimal OS Release Notes - v1.9.5 (Build 26)
 
 ## Google Play Console Release Notes (en-US)
 
@@ -6,37 +6,38 @@ Paste this exact snippet into the Release Notes field in Google Play Console (en
 
 ```text
 <en-US>
-Minimal OS v1.9.4:
-- Enhanced Natural Language Event & Alarm Parser: Resolved edge case where quantities/numbers in event titles were mistakenly parsed as hours; fixed calendar year rollover and wake-up alarm PM conversion.
-- Exact App Uninstallation: Uninstall suggestions now dispatch by unique package identifier, guaranteeing 100% precision with zero ambiguity.
-- Expanded Custom Aliases: Added support for Pomodoro (pomo), YouTube (yt), WhatsApp (wa), and uninstall targets within custom command aliases.
-- Phone & USSD Dialing Reliability: Sanitized tel intent URI encoding to preserve hashes (#) and asterisks (*) for carrier USSD codes.
-- Architectural Hardening: Eliminated obsolete dead code routines and introduced a robust automated unit testing suite.
+Minimal OS v1.9.5:
+- 3rd-Party App Uninstallation Fix: Added mandatory REQUEST_DELETE_PACKAGES permission and resilient multi-tier fallback intents to guarantee native confirmation dialogs appear reliably on Android 8 through 16.
+- Direct Home Screen Pinning: Added `pin <app>` and `unpin <app>` commands with instant fuzzy app matching, dedicated PIN badges, and automatic shortcuts deck activation.
+- App Drawer Power Actions: Long-press any app in the app drawer to Pin/Unpin, Uninstall, or inspect system App Info, with visual PINNED indicator chips.
+- Fluid Physics & Motion Polish: Added Apple/Android physics spring transitions for screen navigation, buttery Command Bar suggestion dropdowns, tactile card/button press physics, and dynamic content morphing.
 - 100% offline, zero-telemetry architecture with zero ads and zero data tracking.
 </en-US>
 ```
 
 ---
 
-## Detailed GitHub Release Notes (v1.9.4)
+## Detailed GitHub Release Notes (v1.9.5)
 
-### What's New in v1.9.4
+### What's New in v1.9.5
 
-#### 1. Intelligent Natural Date/Time Parser Overhaul
-- **Fixed Bare Number Stripping**: Titles like `"Meeting with 2 clients"` or `"Buy 3 laptops"` previously had numbers mistakenly stripped as explicit times (e.g. 2:00 PM). The parser now requires explicit time indicators (`at <hour>`, colon/dot minutes like `7:30`, or `am/pm`).
-- **Calendar Year Calculation Fix**: Fixed millisecond comparison bug when scheduling same-day events (e.g. `"Oct 30 at 8pm"`) where events were incorrectly scheduled for the following year.
-- **Morning Alarm Normalization**: Fixed alarm inputs like `alarm 7:00` being forcibly converted to 7:00 PM (19:00). Wake-up alarms without explicit meridian suffixes now accurately default to morning times.
+#### 1. 3rd-Party App Uninstallation Permission & Resilient Intent Fallback
+- Declared `android.permission.REQUEST_DELETE_PACKAGES` in `AndroidManifest.xml`. On Android 8.0+ through API 36, Android's `PackageInstaller` automatically rejects package deletion intents without this permission.
+- Upgraded `handleUninstall` to use standard `Uri.fromParts("package", packageName, null)` with multi-tier fallback (`Intent.ACTION_DELETE` -> `Intent.ACTION_UNINSTALL_PACKAGE` -> `Settings.ACTION_APPLICATION_DETAILS_SETTINGS`).
+- Added dynamic lifecycle refresh on `ON_RESUME` so uninstalled apps are immediately pruned from the home screen and pinned shortcuts.
 
-#### 2. Exact Package Uninstallation
-- Interactive app uninstallation suggestion chips now pass the app's exact package identifier to `handleUninstall`, preventing potential fuzzy label mismatch when apps share identical or prefix names.
+#### 2. Native Command Bar Pinning (`pin <app>` & `unpin <app>`)
+- Added `pin <app>`, `fav <app>`, `unpin <app>`, and `unfav <app>` to the Command Bar parser.
+- Typing `pin` shows real-time installed app suggestions with a dedicated `PIN` badge; tapping any suggestion directly pins the app to Home.
+- Automatically activates the Home Screen `"SHORTCUTS"` deck if not already enabled so newly pinned shortcuts are immediately visible.
 
-#### 3. Expanded Custom Command Aliases
-- Custom aliases can now seamlessly expand into built-in `pomo`, `pomodoro`, `yt`, `youtube`, `uninstall`, `wa`, and `whatsapp` actions (e.g. `alias focus = pomo 25m`).
+#### 3. App Drawer Context Menu
+- Long-pressing any app in the App Drawer opens a clean options sheet with Pin/Unpin from Home, Uninstall App, and System App Info.
+- Pinned applications now display a subtle `PINNED` badge in the App Drawer.
 
-#### 4. USSD & Phone Dialing Fix
-- Properly encoded telephone URIs (`Uri.encode(phoneNumber)`) so that USSD carrier codes containing `#` (e.g. `*121#`) are dialed correctly without being truncated as URI fragments.
-
-#### 5. Code Quality & Unit Tests
-- Removed 88 lines of legacy, uncalled parsing functions in `ExecuteCommandUseCase`.
-- Added JUnit 4 test runner and 11 unit tests covering `NaturalDateTimeParser` and `CommandParser`.
-- Verified 100% test passing and debug APK compilation.
+#### 4. UI Animation & Tactile Motion Polish (/ui-animation)
+- **Directional Physics Screen Transitions**: Replaced basic crossfade with spatial `AnimatedContent` spring transitions (App Drawer slides up from bottom, Widgets Deck slides from left, Settings slides from right, Hub slides from top).
+- **Fluid Typing Mode Transition**: Smooth transition between Home clock/widgets and Terminal history buffer without layout jumping.
+- **Spring Suggestion Dropdowns**: Command Bar contact and app suggestion cards expand smoothly with spring physics and asymmetric exit timing.
+- **Tactile Touch Feedback**: Added physical press-down scale compression (`0.97x` / `0.98x`) to buttons, cards, app drawer items, and pinned shortcut chips.
+- **Fluid Content Morphing**: Added `animateContentSize` to expandable Todos and Notes widgets.

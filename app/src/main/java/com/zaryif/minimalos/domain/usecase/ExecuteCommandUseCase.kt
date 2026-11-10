@@ -19,7 +19,10 @@ import com.zaryif.minimalos.domain.model.CommandType
 import com.zaryif.minimalos.domain.parser.CommandParser
 import com.zaryif.minimalos.domain.parser.NaturalDateTimeParser
 import com.zaryif.minimalos.domain.timer.PomodoroTimerManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.Calendar
 import java.util.Locale
@@ -30,6 +33,7 @@ sealed class CommandResult {
     data class Success(val message: String) : CommandResult()
     data class LaunchedApp(val appName: String) : CommandResult()
     data class ShowHelp(val commands: List<Pair<String, String>>) : CommandResult()
+    data class OpenQuickNote(val initialText: String? = null) : CommandResult()
     data class Error(val error: String) : CommandResult()
 }
 
@@ -88,6 +92,9 @@ class ExecuteCommandUseCase(
             CommandType.ASK -> handleAsk(command.argument)
             CommandType.YOUTUBE -> handleYouTube(command.argument)
             CommandType.UNINSTALL -> handleUninstall(command.argument)
+            CommandType.PIN -> handlePin(command.argument)
+            CommandType.UNPIN -> handleUnpin(command.argument)
+            CommandType.QUICK_NOTE -> handleQuickNote(command.argument)
             CommandType.DRIVE -> handleDrive(command.argument)
             CommandType.EMAIL -> handleEmail(command.argument)
             CommandType.HELP -> handleHelp()
@@ -306,6 +313,17 @@ class ExecuteCommandUseCase(
         }
 
         return CommandResult.Success("Saved note: $arg")
+    }
+
+    private fun handleQuickNote(arg: String): CommandResult {
+        if (arg.isBlank()) {
+            return CommandResult.OpenQuickNote()
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            userPreferences.setQuickNote(arg)
+        }
+        com.zaryif.minimalos.domain.quicknote.QuickNoteManager.postNotification(context, arg)
+        return CommandResult.Success("Pinned to notification bar: $arg")
     }
 
     /**
@@ -536,7 +554,7 @@ class ExecuteCommandUseCase(
 
         if (match.isSystemApp) {
             val settingsIntent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.parse("package:${match.packageName}")
+                data = Uri.fromParts("package", match.packageName, null)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             try {
@@ -548,15 +566,111 @@ class ExecuteCommandUseCase(
         }
 
         val uninstallIntent = Intent(Intent.ACTION_DELETE).apply {
-            data = Uri.parse("package:${match.packageName}")
+            data = Uri.fromParts("package", match.packageName, null)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            putExtra(Intent.EXTRA_RETURN_RESULT, true)
         }
 
         return try {
             context.startActivity(uninstallIntent)
             CommandResult.Success("Uninstalling ${match.label}…")
         } catch (e: Exception) {
-            CommandResult.Error("Could not start uninstall: ${e.message}")
+            try {
+                @Suppress("DEPRECATION")
+                val legacyIntent = Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
+                    data = Uri.fromParts("package", match.packageName, null)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    putExtra(Intent.EXTRA_RETURN_RESULT, true)
+                }
+                context.startActivity(legacyIntent)
+                CommandResult.Success("Uninstalling ${match.label}…")
+            } catch (e2: Exception) {
+                try {
+                    val settingsIntent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", match.packageName, null)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(settingsIntent)
+                    CommandResult.Success("Opening App Info to uninstall ${match.label}")
+                } catch (e3: Exception) {
+                    CommandResult.Error("Could not start uninstall: ${e.message}")
+                }
+            }
+        }
+    }
+
+    private fun handlePin(arg: String): CommandResult {
+        val appQuery = arg.trim()
+        if (appQuery.isEmpty()) {
+            return CommandResult.Error("Usage: pin <app_name>\nExample: pin chrome")
+        }
+
+        val installedApps = appRepository.getInstalledApps()
+        val match = installedApps.find { it.label.equals(appQuery, ignoreCase = true) }
+            ?: installedApps.find { it.packageName.equals(appQuery, ignoreCase = true) }
+            ?: installedApps.find { it.label.lowercase(Locale.getDefault()).startsWith(appQuery.lowercase(Locale.getDefault())) }
+            ?: installedApps.find { it.label.lowercase(Locale.getDefault()).contains(appQuery.lowercase(Locale.getDefault())) }
+
+        if (match == null) {
+            return CommandResult.Error("App \"$appQuery\" not found on this device")
+        }
+
+        return runBlocking {
+            val currentFavs = try {
+                userPreferences.favoriteApps.first()
+            } catch (_: Exception) {
+                emptySet()
+            }
+
+            if (match.packageName in currentFavs) {
+                CommandResult.Success("${match.label} is already pinned to Home")
+            } else {
+                val updated = currentFavs + match.packageName
+                userPreferences.setFavoriteApps(updated)
+
+                // Ensure "SHORTCUTS" widget is active on Home screen so the pinned shortcut is immediately visible!
+                try {
+                    val currentHomeWidgets = userPreferences.homeWidgets.first()
+                    if ("SHORTCUTS" !in currentHomeWidgets) {
+                        userPreferences.setHomeWidgets(currentHomeWidgets + "SHORTCUTS")
+                    }
+                } catch (_: Exception) {}
+
+                CommandResult.Success("Pinned ${match.label} to Home")
+            }
+        }
+    }
+
+    private fun handleUnpin(arg: String): CommandResult {
+        val appQuery = arg.trim()
+        if (appQuery.isEmpty()) {
+            return CommandResult.Error("Usage: unpin <app_name>\nExample: unpin chrome")
+        }
+
+        val installedApps = appRepository.getInstalledApps()
+        val match = installedApps.find { it.label.equals(appQuery, ignoreCase = true) }
+            ?: installedApps.find { it.packageName.equals(appQuery, ignoreCase = true) }
+            ?: installedApps.find { it.label.lowercase(Locale.getDefault()).startsWith(appQuery.lowercase(Locale.getDefault())) }
+            ?: installedApps.find { it.label.lowercase(Locale.getDefault()).contains(appQuery.lowercase(Locale.getDefault())) }
+
+        if (match == null) {
+            return CommandResult.Error("App \"$appQuery\" not found on this device")
+        }
+
+        return runBlocking {
+            val currentFavs = try {
+                userPreferences.favoriteApps.first()
+            } catch (_: Exception) {
+                emptySet()
+            }
+
+            if (match.packageName !in currentFavs) {
+                CommandResult.Success("${match.label} is not pinned to Home")
+            } else {
+                val updated = currentFavs - match.packageName
+                userPreferences.setFavoriteApps(updated)
+                CommandResult.Success("Unpinned ${match.label} from Home")
+            }
         }
     }
 
@@ -837,7 +951,7 @@ class ExecuteCommandUseCase(
 
         // Case 3: Re-evaluate as an expanded launcher command (e.g. target is "- todo", "!", or "event")
         val isPrefixed = CommandType.fromSymbol(target.first()) != null ||
-                listOf("alarm", "timer", "todo", "note", "event", "call", "msg", "email", "drive", "ask", "help", "pomo", "pomodoro", "yt", "youtube", "uninstall", "wa", "whatsapp")
+                listOf("alarm", "timer", "todo", "note", "event", "call", "msg", "email", "drive", "ask", "help", "pomo", "pomodoro", "yt", "youtube", "uninstall", "wa", "whatsapp", "pin", "unpin", "fav", "unfav")
                     .any { target.lowercase().startsWith(it) }
         if (isPrefixed) {
             val expanded = if (args.isNotBlank()) "$target $args" else target
@@ -918,6 +1032,9 @@ class ExecuteCommandUseCase(
     private fun handleHelp(): CommandResult {
         val helpList = listOf(
             Pair("help or ~", "Show this complete commands and guide cheat sheet"),
+            Pair("uninstall or /", "uninstall <app> — uninstall an application via native system dialog"),
+            Pair("pin", "pin <app> — pin app shortcut to Home screen"),
+            Pair("unpin", "unpin <app> — remove pinned app shortcut from Home screen"),
             Pair("- or todo", "- Buy groceries — add item to Focus Tasks"),
             Pair("! or note", "! Ideas for project — save note to Minimal Memo"),
             Pair("* or event", "* Meeting tomorrow at 3pm — add to Calendar"),

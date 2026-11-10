@@ -13,7 +13,10 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Launch
+import com.zaryif.minimalos.domain.quicknote.QuickNoteManager
 import com.zaryif.minimalos.ui.components.MinimalAlarmTimePickerDialog
+import com.zaryif.minimalos.ui.components.MinimalHomeQuickNoteWidget
+import com.zaryif.minimalos.ui.components.MinimalQuickNoteBlackSpaceSheet
 import com.zaryif.minimalos.util.AlarmClockPermissionHelper
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
@@ -121,7 +124,10 @@ fun WidgetsDeckScreen(
     val notes by storageRepository.notes.collectAsState()
     val deckWidgetsOrder by userPreferences.deckWidgetsOrder.collectAsState(initial = UserPreferences.DEFAULT_DECK_WIDGETS)
     val customCommands by userPreferences.customCommands.collectAsState(initial = emptyMap())
+    val quickNote by userPreferences.quickNote.collectAsState(initial = "")
     val scope = rememberCoroutineScope()
+
+    var showQuickNoteSheet by remember { mutableStateOf(false) }
 
     var newTodoText by remember { mutableStateOf("") }
     var newNoteText by remember { mutableStateOf("") }
@@ -191,6 +197,24 @@ fun WidgetsDeckScreen(
             ) {
                 deckWidgetsOrder.forEach { cardType ->
                     when (cardType) {
+                        "QUICK_NOTE" -> {
+                            item(key = "QUICK_NOTE") {
+                                MinimalHomeQuickNoteWidget(
+                                    quickNoteText = quickNote,
+                                    onNoteChange = { text ->
+                                        scope.launch { userPreferences.setQuickNote(text) }
+                                    },
+                                    onClear = {
+                                        scope.launch {
+                                            userPreferences.setQuickNote("")
+                                            QuickNoteManager.cancelNotification(context)
+                                        }
+                                    },
+                                    onOpenFullScreen = { showQuickNoteSheet = true }
+                                )
+                            }
+                        }
+
                         "NOTES" -> {
                             item(key = "NOTES") {
                                 RabbitNotesCard(
@@ -377,6 +401,22 @@ fun WidgetsDeckScreen(
                 }
             )
         }
+        // KEEP_MAIN_QUICK_NOTE_SHEET
+        if (showQuickNoteSheet) {
+            MinimalQuickNoteBlackSpaceSheet(
+                quickNoteText = quickNote,
+                onNoteChange = { text ->
+                    scope.launch { userPreferences.setQuickNote(text) }
+                },
+                onClear = {
+                    scope.launch {
+                        userPreferences.setQuickNote("")
+                        QuickNoteManager.cancelNotification(context)
+                    }
+                },
+                onDismiss = { showQuickNoteSheet = false }
+            )
+        }
     }
 }
 
@@ -516,6 +556,7 @@ private fun RabbitNotesCard(
                 }
             }
         }
+
     }
 }
 
@@ -672,6 +713,7 @@ private fun RabbitTodoCard(
                 }
             }
         }
+
     }
 }
 
@@ -779,6 +821,7 @@ private fun RabbitCalendarCard(
                 }
             }
         }
+
     }
 }
 
@@ -970,6 +1013,7 @@ private fun RabbitPomodoroCard(
                 }
             }
         }
+
     }
 }
 
@@ -996,11 +1040,18 @@ private fun RabbitAlarmWidgetCard(
     }
 
     LaunchedEffect(Unit) {
+        hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
+        triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
+        var ticks = 0
         while (true) {
-            hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
-            triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
             currentTime = System.currentTimeMillis()
             delay(1000)
+            ticks++
+            if (ticks >= 30) {
+                ticks = 0
+                hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
+                triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
+            }
         }
     }
 
@@ -1353,6 +1404,7 @@ private fun RabbitAlarmWidgetCard(
                 }
             }
         }
+
     }
 }
 
@@ -1615,6 +1667,7 @@ private fun RabbitAliasesWidgetCard(
                 }
             }
         }
+
     }
 }
 
@@ -1730,6 +1783,7 @@ private fun RabbitQuickTimersCard(
                 showCustomTimerDialog = false
             }
         )
+
     }
 }
 
@@ -1774,6 +1828,7 @@ private fun RabbitSystemWidgetsHeader(onAddWidget: () -> Unit) {
                 color = MinimalOnAccent
             )
         }
+
     }
 }
 

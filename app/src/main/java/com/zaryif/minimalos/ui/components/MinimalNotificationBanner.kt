@@ -1,6 +1,9 @@
 package com.zaryif.minimalos.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -49,8 +52,8 @@ fun MinimalNotificationBanner(
 
     AnimatedVisibility(
         visible = !message.isNullOrBlank(),
-        enter = slideInVertically { -it } + fadeIn(),
-        exit = slideOutVertically { -it } + fadeOut(),
+        enter = slideInVertically(spring(dampingRatio = 0.78f, stiffness = 420f)) { -it } + fadeIn(tween(160)),
+        exit = slideOutVertically(tween(140, easing = FastOutLinearInEasing)) { -it } + fadeOut(tween(140)),
         modifier = modifier
     ) {
         Box(

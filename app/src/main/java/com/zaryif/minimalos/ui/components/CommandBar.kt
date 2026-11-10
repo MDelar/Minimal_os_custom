@@ -1,8 +1,14 @@
 package com.zaryif.minimalos.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,6 +38,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -88,6 +95,8 @@ private val BUILTIN_ACTION_KEYWORDS = setOf(
     "assistant", "ai", "ask", "search", "google", "find",
     "yt", "youtube",
     "uninstall", "remove", "rmapp",
+    "pin", "fav", "unpin", "unfav",
+    "qn", "quicknote",
     "help", "commands", "man", "guide",
     "alias", "custom", "setalias", "unalias", "rmalias"
 )
@@ -103,6 +112,7 @@ fun CommandBar(
     onContactSelected: (Contact) -> Unit,
     commandHistory: List<String> = emptyList(),
     isHistoryEnabled: Boolean = true,
+    onToggleHistoryEnabled: (() -> Unit)? = null,
     customAliases: Set<String> = emptySet(),
     hasContactPermission: Boolean = true,
     onRequestContactPermission: (() -> Unit)? = null,
@@ -129,35 +139,8 @@ fun CommandBar(
 
     // 2. Built-in actions (TODO, NOTE, CALL, MESSAGE, WHATSAPP, ALARM, TIMER, EVENT, EMAIL, DRIVE, ASK, HELP)
     val isBuiltInAction = command.type != CommandType.SEARCH || hasPrefix ||
-            lower.let {
-                it == "todo" || it.startsWith("todo ") ||
-                it == "note" || it.startsWith("note ") ||
-                it == "notes" || it.startsWith("notes ") ||
-                it == "task" || it.startsWith("task ") ||
-                it == "memo" || it.startsWith("memo ") ||
-                it == "call" || it.startsWith("call ") ||
-                it == "dial" || it.startsWith("dial ") ||
-                it == "wa" || it.startsWith("wa ") ||
-                it == "whatsapp" || it.startsWith("whatsapp ") ||
-                it == "msg" || it.startsWith("msg ") ||
-                it == "sms" || it.startsWith("sms ") ||
-                it == "text" || it.startsWith("text ") ||
-                it == "message" || it.startsWith("message ") ||
-                it.startsWith("alarm ") || it.startsWith("set alarm ") ||
-                it == "timer" || it.startsWith("timer ") || it.startsWith("set timer ") ||
-                it == "pomodoro" || it.startsWith("pomodoro ") ||
-                it == "pomo" || it.startsWith("pomo ") ||
-                it.startsWith("event ") || it.startsWith("cal ") || it.startsWith("calendar ") || it.startsWith("schedule ") ||
-                it.startsWith("email ") || it.startsWith("mail ") ||
-                it.startsWith("drive ") ||
-                it == "assistant" || it.startsWith("assistant ") ||
-                it == "ai" || it.startsWith("ai ") ||
-                it == "yt" || it.startsWith("yt ") ||
-                it == "youtube" || it.startsWith("youtube ") ||
-                it == "uninstall" || it.startsWith("uninstall ") || it == "remove" || it.startsWith("remove ") || it == "rmapp" || it.startsWith("rmapp ") ||
-                it.startsWith("ask ") || it.startsWith("search ") || it.startsWith("google ") || it.startsWith("find ") ||
-                it == "help" || it.startsWith("help ") || it == "commands" || it == "man" || it == "guide"
-            }
+            firstToken in BUILTIN_ACTION_KEYWORDS ||
+            lower.startsWith("set alarm") || lower.startsWith("set timer")
 
     // Action detection
     val isActionTriggered = isBuiltInAction || isAliasCommand
@@ -257,8 +240,8 @@ fun CommandBar(
 
         AnimatedVisibility(
             visible = showContactSuggestions,
-            enter = fadeIn(),
-            exit = fadeOut()
+            enter = slideInVertically(spring(dampingRatio = 0.8f, stiffness = 500f)) { it / 3 } + fadeIn(tween(150)),
+            exit = slideOutVertically(tween(120, easing = FastOutLinearInEasing)) { it / 4 } + fadeOut(tween(120))
         ) {
             Column(
                 modifier = Modifier
@@ -439,17 +422,23 @@ fun CommandBar(
             }
         }
 
-        // 2. App auto-complete suggestions if searching apps or uninstalling
+        // 2. App auto-complete suggestions if searching apps, uninstalling, or pinning
         val isUninstallMode = lower.let {
             it.startsWith("uninstall") || it.startsWith("remove") || it.startsWith("rmapp")
         } || query.startsWith("/")
+        val isPinMode = lower.let {
+            it.startsWith("pin") || it.startsWith("fav")
+        }
+        val isUnpinMode = lower.let {
+            it.startsWith("unpin") || it.startsWith("unfav")
+        }
         val showAppSuggestions = query.isNotBlank() && !isCallingOrMessaging && matchingApps.isNotEmpty() &&
                 (!hasPrefix || query.startsWith("/"))
 
         AnimatedVisibility(
             visible = showAppSuggestions,
-            enter = fadeIn(),
-            exit = fadeOut()
+            enter = slideInVertically(spring(dampingRatio = 0.8f, stiffness = 500f)) { it / 3 } + fadeIn(tween(150)),
+            exit = slideOutVertically(tween(120, easing = FastOutLinearInEasing)) { it / 4 } + fadeOut(tween(120))
         ) {
             Column(
                 modifier = Modifier
@@ -457,7 +446,11 @@ fun CommandBar(
                     .padding(bottom = 6.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MinimalCardBg)
-                    .border(1.dp, if (isUninstallMode) MinimalRed.copy(alpha = 0.5f) else MinimalDarkGray, RoundedCornerShape(12.dp))
+                    .border(
+                        1.dp,
+                        if (isUninstallMode || isPinMode || isUnpinMode) MinimalRed.copy(alpha = 0.5f) else MinimalDarkGray,
+                        RoundedCornerShape(12.dp)
+                    )
                     .heightIn(max = 145.dp)
                     .verticalScroll(rememberScrollState())
             ) {
@@ -494,6 +487,36 @@ fun CommandBar(
                                     color = MinimalRed
                                 )
                             }
+                        } else if (isPinMode) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(MinimalDarkCardBg)
+                                    .border(1.dp, MinimalRed, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "PIN",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MinimalRed
+                                )
+                            }
+                        } else if (isUnpinMode) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(MinimalDarkCardBg)
+                                    .border(1.dp, MinimalRed, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "UNPIN",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MinimalRed
+                                )
+                            }
                         } else {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -507,13 +530,19 @@ fun CommandBar(
             }
         }
 
+        val animatedBorderColor by animateColorAsState(
+            targetValue = if (isActionTriggered) MinimalRed.copy(alpha = 0.6f) else MinimalDarkGray,
+            animationSpec = tween(180),
+            label = "commandBarBorderColor"
+        )
+
         // 3. Command Bar Input Box
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
                 .background(MinimalCardBg)
-                .border(1.dp, if (isActionTriggered) MinimalRed.copy(alpha = 0.5f) else MinimalDarkGray, RoundedCornerShape(16.dp))
+                .border(1.dp, animatedBorderColor, RoundedCornerShape(16.dp))
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             contentAlignment = Alignment.CenterStart
         ) {
@@ -603,9 +632,23 @@ fun CommandBar(
                     )
                 }
 
-                // Terminal history Up / Down cycling buttons
-                if (isHistoryEnabled && commandHistory.isNotEmpty()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                // Terminal history toggle & Up / Down cycling buttons
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (onToggleHistoryEnabled != null) {
+                        IconButton(
+                            onClick = onToggleHistoryEnabled,
+                            modifier = Modifier.size(26.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Terminal,
+                                contentDescription = if (isHistoryEnabled) "Hide Terminal History" else "Show Terminal History",
+                                tint = if (isHistoryEnabled) MinimalRed else MinimalDarkGray,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                    }
+
+                    if (isHistoryEnabled && commandHistory.isNotEmpty()) {
                         IconButton(
                             onClick = { navigateHistory(up = true) },
                             modifier = Modifier.size(26.dp),

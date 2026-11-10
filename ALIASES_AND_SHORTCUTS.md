@@ -377,6 +377,7 @@ Minimal OS allows you to alias compound terminal commands and natural-language a
 | `alias note = !` | `!` | Maps `note <thought>` to Minimal Memo note creation |
 | `alias memo = !` | `!` | Maps `memo <thought>` to Minimal Memo note creation |
 | `alias rm = uninstall` | `uninstall` | Shorthand for app uninstaller (e.g. `rm chatgpt`) |
+| `alias fav = pin` | `pin` | Shorthand to pin an app shortcut to Home screen (e.g. `fav spotify`) |
 | `alias ai = assistant` | `assistant` | Routes queries directly to default AI assistant |
 | `alias yt = yt` | `yt` | Shorthand YouTube search launcher (e.g. `yt veritasium`) |
 
