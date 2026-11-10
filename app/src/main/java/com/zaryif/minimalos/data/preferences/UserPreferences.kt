@@ -42,7 +42,7 @@ class UserPreferences(private val context: Context) {
         private val HOME_SHOW_ALL_TODOS = booleanPreferencesKey("home_show_all_todos")
         private val HOME_SHOW_ALL_NOTES = booleanPreferencesKey("home_show_all_notes")
         private val SHOW_COMMAND_FEEDBACK = booleanPreferencesKey("show_command_feedback")
-        private val SHOW_COMMAND_BAR = booleanPreferencesKey("show_command_bar")
+        private val SHOW_TERMINAL_BUFFER_ICON = booleanPreferencesKey("show_terminal_buffer_icon")
         private val SHOW_COMMAND_HELPER_ICON = booleanPreferencesKey("show_command_helper_icon")
         private val POMODORO_WORK_MINUTES = intPreferencesKey("pomodoro_work_minutes")
         private val POMODORO_BREAK_MINUTES = intPreferencesKey("pomodoro_break_minutes")
@@ -52,7 +52,7 @@ class UserPreferences(private val context: Context) {
         private val NOTIFICATION_HISTORY_ENABLED = booleanPreferencesKey("notification_history_enabled")
 
         val DEFAULT_HOME_WIDGETS = listOf("ALARM_COUNTDOWN", "TODOS", "SHORTCUTS")
-        val DEFAULT_DECK_WIDGETS = listOf("QUICK_NOTE", "NOTES", "TODOS", "CALENDAR", "POMODORO", "ALARMS", "ALIASES", "TIMERS", "SYSTEM_WIDGETS")
+        val DEFAULT_DECK_WIDGETS = listOf("NOTES", "TODOS", "CALENDAR", "POMODORO", "ALARMS", "ALIASES", "TIMERS", "SYSTEM_WIDGETS")
     }
 
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data
@@ -270,12 +270,12 @@ class UserPreferences(private val context: Context) {
         }
     }
 
-    val showCommandBar: Flow<Boolean> = context.dataStore.data
-        .map { prefs -> prefs[SHOW_COMMAND_BAR] ?: true }
+    val showTerminalBufferIcon: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[SHOW_TERMINAL_BUFFER_ICON] ?: true }
 
-    suspend fun setShowCommandBar(show: Boolean) {
+    suspend fun setShowTerminalBufferIcon(show: Boolean) {
         context.dataStore.edit { prefs ->
-            prefs[SHOW_COMMAND_BAR] = show
+            prefs[SHOW_TERMINAL_BUFFER_ICON] = show
         }
     }
 

@@ -311,13 +311,23 @@ fun MinimalAppContent(
                     (slideInHorizontally(tween(180)) { -it / 6 } + fadeIn(tween(180)))
                         .togetherWith(slideOutHorizontally(tween(180, easing = FastOutLinearInEasing)) { it / 4 } + fadeOut(tween(180)))
                 }
-                // Navigating to/from WIDGETS DECK: instant switch with zero animation
-                targetState == ScreenState.WIDGETS || initialState == ScreenState.WIDGETS -> {
-                    EnterTransition.None.togetherWith(ExitTransition.None)
+                // Navigating to/from WIDGETS DECK (Page 3 on right): sleek directional slide
+                targetState == ScreenState.WIDGETS -> {
+                    (slideInHorizontally(spring(dampingRatio = 0.88f, stiffness = 550f)) { it / 3 } + fadeIn(tween(180)))
+                        .togetherWith(slideOutHorizontally(tween(150)) { -it / 6 } + fadeOut(tween(150)))
                 }
-                // Navigating to/from HUB: instant switch with zero animation
-                targetState == ScreenState.HUB || initialState == ScreenState.HUB -> {
-                    EnterTransition.None.togetherWith(ExitTransition.None)
+                initialState == ScreenState.WIDGETS -> {
+                    (slideInHorizontally(tween(180)) { -it / 6 } + fadeIn(tween(180)))
+                        .togetherWith(slideOutHorizontally(tween(180, easing = FastOutLinearInEasing)) { it / 3 } + fadeOut(tween(180)))
+                }
+                // Navigating to/from HUB (Page 1 on left): sleek directional slide
+                targetState == ScreenState.HUB -> {
+                    (slideInHorizontally(spring(dampingRatio = 0.88f, stiffness = 550f)) { -it / 3 } + fadeIn(tween(180)))
+                        .togetherWith(slideOutHorizontally(tween(150)) { it / 6 } + fadeOut(tween(150)))
+                }
+                initialState == ScreenState.HUB -> {
+                    (slideInHorizontally(tween(180)) { it / 6 } + fadeIn(tween(180)))
+                        .togetherWith(slideOutHorizontally(tween(180, easing = FastOutLinearInEasing)) { -it / 3 } + fadeOut(tween(180)))
                 }
                 else -> {
                     fadeIn(tween(220)).togetherWith(fadeOut(tween(180)))

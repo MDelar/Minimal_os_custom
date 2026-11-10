@@ -13,16 +13,13 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Launch
-import com.zaryif.minimalos.domain.quicknote.QuickNoteManager
 import com.zaryif.minimalos.ui.components.MinimalAlarmTimePickerDialog
-import com.zaryif.minimalos.ui.components.MinimalHomeQuickNoteWidget
-import com.zaryif.minimalos.ui.components.MinimalQuickNoteBlackSpaceSheet
 import com.zaryif.minimalos.util.AlarmClockPermissionHelper
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -125,10 +122,7 @@ fun WidgetsDeckScreen(
     val notes by storageRepository.notes.collectAsState()
     val deckWidgetsOrder by userPreferences.deckWidgetsOrder.collectAsState(initial = UserPreferences.DEFAULT_DECK_WIDGETS)
     val customCommands by userPreferences.customCommands.collectAsState(initial = emptyMap())
-    val quickNote by userPreferences.quickNote.collectAsState(initial = "")
     val scope = rememberCoroutineScope()
-
-    var showQuickNoteSheet by remember { mutableStateOf(false) }
 
     var newTodoText by remember { mutableStateOf("") }
     var newNoteText by remember { mutableStateOf("") }
@@ -149,13 +143,19 @@ fun WidgetsDeckScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
             .pointerInput(Unit) {
-                detectDragGestures { _, dragAmount ->
-                    val (x, y) = dragAmount
-                    // Swipe right -> Return to Home
-                    if (x > 30 && kotlin.math.abs(x) > kotlin.math.abs(y)) {
-                        onBackToHome()
+                var isReturning = false
+                detectHorizontalDragGestures(
+                    onDragStart = { isReturning = false },
+                    onDragEnd = { isReturning = false },
+                    onDragCancel = { isReturning = false },
+                    onHorizontalDrag = { change, dragAmount ->
+                        if (!isReturning && dragAmount > 25) {
+                            isReturning = true
+                            change.consume()
+                            onBackToHome()
+                        }
                     }
-                }
+                )
             }
             .padding(horizontal = 20.dp, vertical = 14.dp)
     ) {
@@ -198,24 +198,6 @@ fun WidgetsDeckScreen(
             ) {
                 deckWidgetsOrder.forEach { cardType ->
                     when (cardType) {
-                        "QUICK_NOTE" -> {
-                            item(key = "QUICK_NOTE") {
-                                MinimalHomeQuickNoteWidget(
-                                    quickNoteText = quickNote,
-                                    onNoteChange = { text ->
-                                        scope.launch { userPreferences.setQuickNote(text) }
-                                    },
-                                    onClear = {
-                                        scope.launch {
-                                            userPreferences.setQuickNote("")
-                                            QuickNoteManager.cancelNotification(context)
-                                        }
-                                    },
-                                    onOpenFullScreen = { showQuickNoteSheet = true }
-                                )
-                            }
-                        }
-
                         "NOTES" -> {
                             item(key = "NOTES") {
                                 RabbitNotesCard(
@@ -400,22 +382,6 @@ fun WidgetsDeckScreen(
                     PomodoroTimerManager.setWorkMinutes(mins)
                     showCustomPomodoroDialog = false
                 }
-            )
-        }
-        // KEEP_MAIN_QUICK_NOTE_SHEET
-        if (showQuickNoteSheet) {
-            MinimalQuickNoteBlackSpaceSheet(
-                quickNoteText = quickNote,
-                onNoteChange = { text ->
-                    scope.launch { userPreferences.setQuickNote(text) }
-                },
-                onClear = {
-                    scope.launch {
-                        userPreferences.setQuickNote("")
-                        QuickNoteManager.cancelNotification(context)
-                    }
-                },
-                onDismiss = { showQuickNoteSheet = false }
             )
         }
     }
@@ -1029,7 +995,7 @@ private fun RabbitAlarmWidgetCard(
     val context = LocalContext.current
     var statusFeedback by remember { mutableStateOf<String?>(null) }
     var showTimePickerDialog by remember { mutableStateOf(false) }
-    var selectedTimeDisplay by remember { mutableStateOf("7:00 AM") }
+    var selectedTimeDisplay by remember { mutableStateOf("") }
     var selectedDayDisplay by remember { mutableStateOf("Tomorrow") }
     var hasUserSelectedPreset by remember { mutableStateOf(false) }
 
@@ -1099,10 +1065,16 @@ private fun RabbitAlarmWidgetCard(
     }
 
     if (showTimePickerDialog) {
+        val nowCal = Calendar.getInstance()
+        val currentHourRaw = nowCal.get(Calendar.HOUR)
+        val initialHourVal = if (currentHourRaw == 0) 12 else currentHourRaw
+        val initialMinVal = (nowCal.get(Calendar.MINUTE) / 5) * 5
+        val initialAmPmVal = if (nowCal.get(Calendar.AM_PM) == Calendar.AM) "AM" else "PM"
+
         MinimalAlarmTimePickerDialog(
-            initialHour = 7,
-            initialMinute = 0,
-            initialAmPm = "AM",
+            initialHour = initialHourVal,
+            initialMinute = initialMinVal,
+            initialAmPm = initialAmPmVal,
             onDismiss = { showTimePickerDialog = false },
             onConfirm = { hour, minute, amPm, dayLabel ->
                 showTimePickerDialog = false
@@ -1303,10 +1275,10 @@ private fun RabbitAlarmWidgetCard(
                             color = if (hasUserSelectedPreset) MinimalWhite else MinimalGray
                         )
                         Text(
-                            text = if (hasUserSelectedPreset) {
+                            text = if (hasUserSelectedPreset && selectedTimeDisplay.isNotBlank()) {
                                 "Tap ⏰ to set for $selectedDayDisplay"
                             } else {
-                                "No alarm set • Choose a preset or tap +"
+                                "Tap ⏰ or + to pick alarm time"
                             },
                             fontFamily = AppleSanFranciscoFontFamily,
                             fontSize = 11.sp,
@@ -1322,7 +1294,7 @@ private fun RabbitAlarmWidgetCard(
                             if (hasActiveAlarm) {
                                 onOpenClock()
                             } else {
-                                openDatePicker()
+                                showTimePickerDialog = true
                             }
                         },
                         modifier = Modifier
@@ -1333,7 +1305,7 @@ private fun RabbitAlarmWidgetCard(
                     ) {
                         Icon(
                             imageVector = if (hasActiveAlarm) Icons.Default.Schedule else Icons.Default.CalendarMonth,
-                            contentDescription = if (hasActiveAlarm) "Open Clock" else "Pick Date",
+                            contentDescription = if (hasActiveAlarm) "Open Clock" else "Pick Time",
                             tint = MinimalGray,
                             modifier = Modifier.size(20.dp)
                         )
@@ -1342,11 +1314,14 @@ private fun RabbitAlarmWidgetCard(
                     // Button 2: Set Alarm
                     IconButton(
                         onClick = {
-                            val timeToSet = if (hasUserSelectedPreset) selectedTimeDisplay else "7:00 AM"
-                            val query = "$timeToSet $selectedDayDisplay"
-                            onSetAlarm(query)
-                            statusFeedback = "Alarm set for $timeToSet ($selectedDayDisplay)"
-                            hasUserSelectedPreset = false
+                            if (hasUserSelectedPreset && selectedTimeDisplay.isNotBlank()) {
+                                val query = "$selectedTimeDisplay $selectedDayDisplay"
+                                onSetAlarm(query)
+                                statusFeedback = "Alarm set for $selectedTimeDisplay ($selectedDayDisplay)"
+                                hasUserSelectedPreset = false
+                            } else {
+                                showTimePickerDialog = true
+                            }
                         },
                         modifier = Modifier
                             .size(42.dp)

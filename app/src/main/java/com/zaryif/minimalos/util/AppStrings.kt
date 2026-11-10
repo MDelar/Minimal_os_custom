@@ -131,8 +131,8 @@ object AppStrings {
 
     // Section 4: Command Bar & History
     var settingsSecCommand = "COMMAND BAR & SHORTCUTS"
-    var settingsShowCommandBarTitle = "Show Command Bar"
-    var settingsShowCommandBarDesc = "Display interactive command box at bottom of home screen"
+    var settingsTerminalBufferIconTitle = "Terminal Buffer Icon"
+    var settingsTerminalBufferIconDesc = "Show terminal history buffer toggle icon inside command box"
     var settingsCommandHelperIconTitle = "Command Helper Icon"
     var settingsCommandHelperIconDesc = "Show '?' cheat sheet button inside command box"
     var settingsAliasesTitle = "Command Aliases"

@@ -9,8 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -119,6 +118,7 @@ fun HubScreen(
 
     var isArchiveMode by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(NotificationCategory.ALL) }
+    var showStarredOnly by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
 
@@ -142,9 +142,11 @@ fun HubScreen(
 
     // Filter current list (live or archive)
     val activeSource = if (isArchiveMode) archivedNotifications else liveNotifications
-    val filteredList = remember(activeSource, selectedCategory, searchQuery) {
+    val filteredList = remember(activeSource, selectedCategory, showStarredOnly, searchQuery) {
         var list = activeSource
-        if (selectedCategory != NotificationCategory.ALL) {
+        if (showStarredOnly) {
+            list = list.filter { it.isFlagged }
+        } else if (selectedCategory != NotificationCategory.ALL) {
             list = list.filter { it.category == selectedCategory }
         }
         if (searchQuery.isNotBlank()) {
@@ -165,13 +167,19 @@ fun HubScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
             .pointerInput(Unit) {
-                detectDragGestures { _, dragAmount ->
-                    val (x, y) = dragAmount
-                    // Swipe left -> Home
-                    if (x < -30 && kotlin.math.abs(x) > kotlin.math.abs(y)) {
-                        onBackToHome()
+                var isReturning = false
+                detectHorizontalDragGestures(
+                    onDragStart = { isReturning = false },
+                    onDragEnd = { isReturning = false },
+                    onDragCancel = { isReturning = false },
+                    onHorizontalDrag = { change, dragAmount ->
+                        if (!isReturning && dragAmount < -25) {
+                            isReturning = true
+                            change.consume()
+                            onBackToHome()
+                        }
                     }
-                }
+                )
             }
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -415,13 +423,37 @@ fun HubScreen(
                     }
                 }
 
-                // Category Filter Icons (ALL, MESSAGE, CALLS, EMAIL) - No swiping needed
+                // Category Filter Icons (STARRED, ALL, MESSAGE, CALLS, EMAIL) - Zero swiping needed
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Starred Icon (Left of bell icon)
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (showStarredOnly) MinimalCardBg else Color.Transparent)
+                            .border(
+                                1.dp,
+                                if (showStarredOnly) MinimalRed.copy(alpha = 0.8f) else MinimalDarkGray.copy(alpha = 0.4f),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .clickable {
+                                showStarredOnly = !showStarredOnly
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (showStarredOnly) Icons.Default.Star else Icons.Default.StarBorder,
+                            contentDescription = "Starred Alerts",
+                            tint = if (showStarredOnly) MinimalRed else MinimalGray,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+
                     categories.forEach { cat ->
-                        val isSelected = cat == selectedCategory
+                        val isSelected = !showStarredOnly && cat == selectedCategory
                         val (icon, label) = when (cat) {
                             NotificationCategory.ALL -> Icons.Default.Notifications to "All"
                             NotificationCategory.MESSAGE -> Icons.Default.ChatBubbleOutline to "Messages"
@@ -440,7 +472,10 @@ fun HubScreen(
                                     if (isSelected) MinimalRed.copy(alpha = 0.8f) else MinimalDarkGray.copy(alpha = 0.4f),
                                     RoundedCornerShape(8.dp)
                                 )
-                                .clickable { selectedCategory = cat },
+                                .clickable {
+                                    showStarredOnly = false
+                                    selectedCategory = cat
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -527,15 +562,16 @@ fun HubScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Check,
+                                imageVector = if (showStarredOnly) Icons.Default.Star else Icons.Default.Check,
                                 contentDescription = null,
-                                tint = MinimalGray,
+                                tint = if (showStarredOnly) MinimalRed else MinimalGray,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
                             text = if (searchQuery.isNotBlank()) "No alerts matching \"$searchQuery\""
+                                   else if (showStarredOnly) "No starred alerts"
                                    else if (isArchiveMode) AppStrings.hubEmptyArchiveTitle
                                    else AppStrings.hubEmptyTitle,
                             fontSize = 13.sp,
@@ -544,7 +580,8 @@ fun HubScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (isArchiveMode) AppStrings.hubEmptyArchiveSubtitle
+                            text = if (showStarredOnly) "Tap the star icon on any alert to keep it in this collection"
+                                   else if (isArchiveMode) AppStrings.hubEmptyArchiveSubtitle
                                    else AppStrings.hubEmptySubtitle,
                             fontSize = 11.sp,
                             color = MinimalGray

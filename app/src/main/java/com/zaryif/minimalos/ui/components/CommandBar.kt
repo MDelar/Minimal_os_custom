@@ -96,7 +96,7 @@ private val BUILTIN_ACTION_KEYWORDS = setOf(
     "yt", "youtube",
     "uninstall", "remove", "rmapp",
     "pin", "fav", "unpin", "unfav",
-    "qn", "quicknote",
+    "pinit", "qn", "quicknote",
     "help", "commands", "man", "guide",
     "alias", "custom", "setalias", "unalias", "rmalias"
 )
@@ -118,6 +118,7 @@ fun CommandBar(
     onRequestContactPermission: (() -> Unit)? = null,
     onHelpRequested: (() -> Unit)? = null,
     showHelperIcon: Boolean = true,
+    showTerminalBufferIcon: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -135,13 +136,14 @@ fun CommandBar(
     // 1. Alias commands: alias, custom, setalias, unalias, rmalias, or user defined aliases
     val isAliasCommand = trimmed.isNotEmpty() && (
         firstToken in listOf("alias", "custom", "setalias", "unalias", "rmalias") ||
-        firstToken in customAliases
+        customAliases.any { it.equals(firstToken, ignoreCase = true) }
     )
 
-    // 2. Built-in actions (TODO, NOTE, CALL, MESSAGE, WHATSAPP, ALARM, TIMER, EVENT, EMAIL, DRIVE, ASK, HELP)
+    // 2. Built-in actions (TODO, NOTE, CALL, MESSAGE, WHATSAPP, ALARM, TIMER, EVENT, EMAIL, DRIVE, ASK, HELP, PINIT)
     val isBuiltInAction = command.type != CommandType.SEARCH || hasPrefix ||
             firstToken in BUILTIN_ACTION_KEYWORDS ||
-            lower.startsWith("set alarm") || lower.startsWith("set timer")
+            lower.startsWith("set alarm") || lower.startsWith("set timer") ||
+            lower.startsWith("pin it") || lower.startsWith("quick note")
 
     // Action detection
     val isActionTriggered = isBuiltInAction || isAliasCommand
@@ -163,6 +165,10 @@ fun CommandBar(
                     triggerEnd = leadingSpaces + 9
                 } else if (trimmedInput.lowercase().startsWith("set timer ") || trimmedInput.lowercase() == "set timer") {
                     triggerEnd = leadingSpaces + 9
+                } else if (trimmedInput.lowercase().startsWith("pin it ") || trimmedInput.lowercase() == "pin it") {
+                    triggerEnd = leadingSpaces + 6
+                } else if (trimmedInput.lowercase().startsWith("quick note ") || trimmedInput.lowercase() == "quick note") {
+                    triggerEnd = leadingSpaces + 10
                 } else {
                     val firstWord = trimmedInput.substringBefore(" ").lowercase()
                     val isKnownAction = firstWord in BUILTIN_ACTION_KEYWORDS || customAliases.any { it.equals(firstWord, ignoreCase = true) }
@@ -635,7 +641,7 @@ fun CommandBar(
 
                 // Terminal history toggle & Up / Down cycling buttons
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (onToggleHistoryEnabled != null) {
+                    if (showTerminalBufferIcon && onToggleHistoryEnabled != null) {
                         IconButton(
                             onClick = onToggleHistoryEnabled,
                             modifier = Modifier.size(26.dp)

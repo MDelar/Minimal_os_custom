@@ -135,7 +135,7 @@ fun HomeScreen(
     val showAllTodosPref by userPreferences.homeShowAllTodos.collectAsState(initial = false)
     val showAllNotesPref by userPreferences.homeShowAllNotes.collectAsState(initial = false)
     val showCommandFeedback by userPreferences.showCommandFeedback.collectAsState(initial = false)
-    val showCommandBar by userPreferences.showCommandBar.collectAsState(initial = true)
+    val showTerminalBufferIcon by userPreferences.showTerminalBufferIcon.collectAsState(initial = true)
     val showCommandHelperIcon by userPreferences.showCommandHelperIcon.collectAsState(initial = true)
     val assistantPackage by userPreferences.assistantPackage.collectAsState(initial = null)
     val commandHistoryEnabled by userPreferences.commandHistoryEnabled.collectAsState(initial = true)
@@ -419,15 +419,25 @@ fun HomeScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, dragAmount ->
-                        if (!isTyping) {
-                            if (dragAmount > 30) {
-                                onNavigateToHub()
-                            } else if (dragAmount < -30) {
-                                onNavigateToWidgets()
+                    var isNavigating = false
+                    detectHorizontalDragGestures(
+                        onDragStart = { isNavigating = false },
+                        onDragEnd = { isNavigating = false },
+                        onDragCancel = { isNavigating = false },
+                        onHorizontalDrag = { change, dragAmount ->
+                            if (!isTyping && !isNavigating) {
+                                if (dragAmount > 28) {
+                                    isNavigating = true
+                                    change.consume()
+                                    onNavigateToHub()
+                                } else if (dragAmount < -28) {
+                                    isNavigating = true
+                                    change.consume()
+                                    onNavigateToWidgets()
+                                }
                             }
                         }
-                    }
+                    )
                 }
                 .padding(horizontal = 22.dp, vertical = 8.dp)
         ) {
@@ -709,106 +719,105 @@ fun HomeScreen(
                     }
                 }
 
-                // Command Bar anchored firmly at bottom of visible window (if enabled)
-                if (showCommandBar) {
-                    CommandBar(
-                        query = query,
-                        onQueryChange = { query = it },
-                        onExecute = { input ->
-                            if (commandHistoryEnabled) {
-                                scope.launch {
-                                    userPreferences.addCommandToHistory(input)
-                                }
-                            }
-                            val result = executeCommandUseCase.execute(input)
-                            when (result) {
-                                is CommandResult.Success -> {
-                                    query = ""
-                                    if (showCommandFeedback) {
-                                        notificationMessage = result.message
-                                    }
-                                }
-                                is CommandResult.OpenQuickNote -> {
-                                    query = ""
-                                    showQuickNoteSheet = true
-                                }
-                                is CommandResult.LaunchedApp -> {
-                                    query = ""
-                                }
-                                is CommandResult.ShowHelp -> {
-                                    query = ""
-                                    showHelpDialog = true
-                                }
-                                is CommandResult.Error -> {
-                                    notificationMessage = result.error
-                                }
-                            }
-                        },
-                        matchingApps = matchingApps,
-                        onAppSelected = { app ->
-                            val trimmedLower = query.trim().lowercase()
-                            val isUninstall = trimmedLower.startsWith("uninstall") ||
-                                    trimmedLower.startsWith("remove") ||
-                                    trimmedLower.startsWith("rmapp") ||
-                                    query.trim().startsWith("/")
-                            val isPin = trimmedLower.startsWith("pin") ||
-                                    trimmedLower.startsWith("fav")
-                            val isUnpin = trimmedLower.startsWith("unpin") ||
-                                    trimmedLower.startsWith("unfav")
-                            query = ""
-                            if (isUninstall) {
-                                val result = executeCommandUseCase.execute("uninstall ${app.packageName}")
-                                when (result) {
-                                    is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
-                                    is CommandResult.Error -> notificationMessage = result.error
-                                    else -> {}
-                                }
-                            } else if (isPin) {
-                                val result = executeCommandUseCase.execute("pin ${app.packageName}")
-                                when (result) {
-                                    is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
-                                    is CommandResult.Error -> notificationMessage = result.error
-                                    else -> {}
-                                }
-                            } else if (isUnpin) {
-                                val result = executeCommandUseCase.execute("unpin ${app.packageName}")
-                                when (result) {
-                                    is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
-                                    is CommandResult.Error -> notificationMessage = result.error
-                                    else -> {}
-                                }
-                            } else {
-                                val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
-                                launchIntent?.let { context.startActivity(it) }
-                            }
-                        },
-                        matchingContacts = matchingContacts,
-                        onContactSelected = { contact ->
-                            if (query.startsWith("wa") || query.startsWith("=")) {
-                                query = "wa ${contact.name}: "
-                            } else if (query.startsWith("#") || query.startsWith("call") || query.startsWith("dial")) {
-                                query = ""
-                                executeCommandUseCase.execute("#${contact.phoneNumber}")
-                            } else {
-                                query = "@ ${contact.name}: "
-                            }
-                        },
-                        commandHistory = commandHistory,
-                        isHistoryEnabled = commandHistoryEnabled,
-                        onToggleHistoryEnabled = {
+                // Command Bar anchored firmly at bottom of visible window
+                CommandBar(
+                    query = query,
+                    onQueryChange = { query = it },
+                    onExecute = { input ->
+                        if (commandHistoryEnabled) {
                             scope.launch {
-                                userPreferences.setCommandHistoryEnabled(!commandHistoryEnabled)
+                                userPreferences.addCommandToHistory(input)
                             }
-                        },
-                        customAliases = customCommands.keys,
-                        hasContactPermission = hasContactPermission,
-                        onRequestContactPermission = {
-                            contactPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
-                        },
-                        onHelpRequested = { showHelpDialog = true },
-                        showHelperIcon = showCommandHelperIcon
-                    )
-                }
+                        }
+                        val result = executeCommandUseCase.execute(input)
+                        when (result) {
+                            is CommandResult.Success -> {
+                                query = ""
+                                if (showCommandFeedback) {
+                                    notificationMessage = result.message
+                                }
+                            }
+                            is CommandResult.OpenQuickNote -> {
+                                query = ""
+                                showQuickNoteSheet = true
+                            }
+                            is CommandResult.LaunchedApp -> {
+                                query = ""
+                            }
+                            is CommandResult.ShowHelp -> {
+                                query = ""
+                                showHelpDialog = true
+                            }
+                            is CommandResult.Error -> {
+                                notificationMessage = result.error
+                            }
+                        }
+                    },
+                    matchingApps = matchingApps,
+                    onAppSelected = { app ->
+                        val trimmedLower = query.trim().lowercase()
+                        val isUninstall = trimmedLower.startsWith("uninstall") ||
+                                trimmedLower.startsWith("remove") ||
+                                trimmedLower.startsWith("rmapp") ||
+                                query.trim().startsWith("/")
+                        val isPin = trimmedLower.startsWith("pin") ||
+                                trimmedLower.startsWith("fav")
+                        val isUnpin = trimmedLower.startsWith("unpin") ||
+                                trimmedLower.startsWith("unfav")
+                        query = ""
+                        if (isUninstall) {
+                            val result = executeCommandUseCase.execute("uninstall ${app.packageName}")
+                            when (result) {
+                                is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
+                                is CommandResult.Error -> notificationMessage = result.error
+                                else -> {}
+                            }
+                        } else if (isPin) {
+                            val result = executeCommandUseCase.execute("pin ${app.packageName}")
+                            when (result) {
+                                is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
+                                is CommandResult.Error -> notificationMessage = result.error
+                                else -> {}
+                            }
+                        } else if (isUnpin) {
+                            val result = executeCommandUseCase.execute("unpin ${app.packageName}")
+                            when (result) {
+                                is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
+                                is CommandResult.Error -> notificationMessage = result.error
+                                else -> {}
+                            }
+                        } else {
+                            val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
+                            launchIntent?.let { context.startActivity(it) }
+                        }
+                    },
+                    matchingContacts = matchingContacts,
+                    onContactSelected = { contact ->
+                        if (query.startsWith("wa") || query.startsWith("=")) {
+                            query = "wa ${contact.name}: "
+                        } else if (query.startsWith("#") || query.startsWith("call") || query.startsWith("dial")) {
+                            query = ""
+                            executeCommandUseCase.execute("#${contact.phoneNumber}")
+                        } else {
+                            query = "@ ${contact.name}: "
+                        }
+                    },
+                    commandHistory = commandHistory,
+                    isHistoryEnabled = commandHistoryEnabled,
+                    onToggleHistoryEnabled = {
+                        scope.launch {
+                            userPreferences.setCommandHistoryEnabled(!commandHistoryEnabled)
+                        }
+                    },
+                    customAliases = customCommands.keys,
+                    hasContactPermission = hasContactPermission,
+                    onRequestContactPermission = {
+                        contactPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                    },
+                    onHelpRequested = { showHelpDialog = true },
+                    showHelperIcon = showCommandHelperIcon,
+                    showTerminalBufferIcon = showTerminalBufferIcon
+                )
             }
         }
 

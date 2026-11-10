@@ -138,7 +138,7 @@ fun SettingsScreen(
     // Preferences collection
     val assistantPackage by userPreferences.assistantPackage.collectAsState(initial = null)
     val showCommandFeedback by userPreferences.showCommandFeedback.collectAsState(initial = false)
-    val showCommandBar by userPreferences.showCommandBar.collectAsState(initial = true)
+    val showTerminalBufferIcon by userPreferences.showTerminalBufferIcon.collectAsState(initial = true)
     val showCommandHelperIcon by userPreferences.showCommandHelperIcon.collectAsState(initial = true)
     val customWallpaperUri by userPreferences.customWallpaperUri.collectAsState(initial = null)
     val favoriteAppPackages by userPreferences.favoriteApps.collectAsState(initial = emptySet())
@@ -913,7 +913,6 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val allDeckWidgetOptions = listOf(
-                    Pair("QUICK_NOTE", "quick note (pinned scratchpad)"),
                     Pair("NOTES", "notes card"),
                     Pair("TODOS", "tasks card"),
                     Pair("CALENDAR", "schedule & events card"),
@@ -1080,15 +1079,15 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsGroupCard {
-                    // Item 0a: Show Command Bar on Home
+                    // Item 0a: Show Terminal Buffer Icon
                     SettingsItemRow(
                         icon = Icons.Default.Terminal,
-                        title = AppStrings.settingsShowCommandBarTitle,
-                        subtitle = AppStrings.settingsShowCommandBarDesc,
+                        title = AppStrings.settingsTerminalBufferIconTitle,
+                        subtitle = AppStrings.settingsTerminalBufferIconDesc,
                         trailingContent = {
                             Switch(
-                                checked = showCommandBar,
-                                onCheckedChange = { scope.launch { userPreferences.setShowCommandBar(it) } },
+                                checked = showTerminalBufferIcon,
+                                onCheckedChange = { scope.launch { userPreferences.setShowTerminalBufferIcon(it) } },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = MinimalWhite,
                                     checkedTrackColor = MinimalRed,
