@@ -87,7 +87,10 @@ fun MinimalHomeQuickNoteWidget(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
                     Icon(
                         imageVector = Icons.Default.PushPin,
                         contentDescription = "Pinned Note",
@@ -102,40 +105,57 @@ fun MinimalHomeQuickNoteWidget(
                         color = MinimalWhite,
                         letterSpacing = 0.5.sp
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "• pinned to bar",
-                        fontSize = 10.sp,
-                        color = MinimalGray
-                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(MinimalDarkCardBg)
+                            .border(0.5.dp, MinimalDarkGray, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = "pinned",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MinimalRed,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     if (quickNoteText.isNotBlank()) {
                         Text(
                             text = "clear",
                             fontSize = 11.sp,
-                            color = MinimalGray,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MinimalRed,
                             modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
                                 .clickable { onClear() }
-                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                     }
-                    Icon(
-                        imageVector = Icons.Default.Fullscreen,
-                        contentDescription = "Expand Fullscreen",
-                        tint = MinimalGray,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clickable { onOpenFullScreen() }
-                    )
+                    IconButton(
+                        onClick = onOpenFullScreen,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Fullscreen,
+                            contentDescription = "Expand Fullscreen",
+                            tint = MinimalGray,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Black space scratchpad
+            // Black space scratchpad with reliable tap-to-type input
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -145,15 +165,6 @@ fun MinimalHomeQuickNoteWidget(
                     .border(1.dp, MinimalDarkGray.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
                     .padding(10.dp)
             ) {
-                if (quickNoteText.isEmpty()) {
-                    Text(
-                        text = "What's on your mind? Type anything here...\nPinned to your notification bar automatically.",
-                        color = MinimalDarkGray,
-                        fontSize = 12.sp,
-                        lineHeight = 17.sp
-                    )
-                }
-
                 BasicTextField(
                     value = quickNoteText,
                     onValueChange = { newText ->
@@ -162,12 +173,25 @@ fun MinimalHomeQuickNoteWidget(
                     },
                     textStyle = TextStyle(
                         color = MinimalWhite,
-                        fontSize = 12.sp,
-                        lineHeight = 17.sp,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
                         fontFamily = FontFamily.SansSerif
                     ),
                     cursorBrush = SolidColor(MinimalRed),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 40.dp),
+                    decorationBox = { innerTextField ->
+                        if (quickNoteText.isEmpty()) {
+                            Text(
+                                text = "Type note here · Pinned to status bar...",
+                                color = MinimalDarkGray,
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp
+                            )
+                        }
+                        innerTextField()
+                    }
                 )
             }
         }
@@ -234,10 +258,11 @@ fun MinimalQuickNoteBlackSpaceSheet(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
                             .background(MinimalDarkCardBg)
+                            .border(0.5.dp, MinimalDarkGray, RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = "PINNED TO STATUS BAR",
+                            text = "PINNED",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MinimalRed,
@@ -289,15 +314,6 @@ fun MinimalQuickNoteBlackSpaceSheet(
                     .border(1.dp, MinimalDarkGray.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                     .padding(16.dp)
             ) {
-                if (quickNoteText.isEmpty()) {
-                    Text(
-                        text = "What's on your mind? Jot anything here...\n\nWhatever you write here stays persistently pinned to your phone's notification bar so you never forget.",
-                        color = MinimalDarkGray,
-                        fontSize = 15.sp,
-                        lineHeight = 22.sp
-                    )
-                }
-
                 BasicTextField(
                     value = quickNoteText,
                     onValueChange = { newText ->
@@ -313,7 +329,18 @@ fun MinimalQuickNoteBlackSpaceSheet(
                     cursorBrush = SolidColor(MinimalRed),
                     modifier = Modifier
                         .fillMaxSize()
-                        .focusRequester(focusRequester)
+                        .focusRequester(focusRequester),
+                    decorationBox = { innerTextField ->
+                        if (quickNoteText.isEmpty()) {
+                            Text(
+                                text = "What's on your mind? Jot anything here...\n\nWhatever you write here stays persistently pinned to your phone's notification bar so you never forget.",
+                                color = MinimalDarkGray,
+                                fontSize = 15.sp,
+                                lineHeight = 22.sp
+                            )
+                        }
+                        innerTextField()
+                    }
                 )
             }
         }

@@ -6,8 +6,8 @@
 <br/><br/>
 
 [![Build Minimal OS Launcher APK](https://github.com/zaryif/Minimal_os/actions/workflows/build.yml/badge.svg)](https://github.com/zaryif/Minimal_os/actions/workflows/build.yml)
-[![Latest Release](https://img.shields.io/badge/release-v1.9.8%20(Build%2029)-red.svg)](https://github.com/zaryif/Minimal_os/releases/latest)
-[![Android](https://img.shields.io/badge/Android-8.0%20to%2015-black.svg?logo=android)](https://www.android.com)
+[![Latest Release](https://img.shields.io/badge/release-v1.9.9%20(Build%2030)-red.svg)](https://github.com/zaryif/Minimal_os/releases/latest)
+[![Android](https://img.shields.io/badge/Android-8.0%20to%2016-black.svg?logo=android)](https://www.android.com)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4.svg?logo=jetpackcompose)](https://developer.android.com/jetpack/compose)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7F52FF.svg?logo=kotlin)](https://kotlinlang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-red.svg)](LICENSE)
@@ -16,7 +16,7 @@
 
 *Type to do things. One hub for everything. Zero visual noise.*
 
-[Download Latest APK (v1.9.8)](https://github.com/zaryif/Minimal_os/releases/latest) • [Interactive GIF Demos](showcase/README.md) • [Visual Showcase](#visual-overview) • [Core Features](#core-features) • [Text Graphics & Architecture](#text-graphics--feature-architectures) • [Installation](#installation--setup) • [Architecture](#architecture--tech-stack)
+[Download Latest APK (v1.9.9)](https://github.com/zaryif/Minimal_os/releases/latest) • [Interactive GIF Demos](showcase/README.md) • [Visual Showcase](#visual-overview) • [Core Features](#core-features) • [Text Graphics & Architecture](#text-graphics--feature-architectures) • [Installation](#installation--setup) • [Architecture](#architecture--tech-stack)
 
 <br/>
 
@@ -267,7 +267,7 @@ Minimal OS is engineered specifically for Android to feel like an integral part 
 ### Download Latest APK
 Grab the latest verified APK release directly from GitHub:
 
-**[Download Minimal OS Launcher v1.9.8 (Build 29) APK](https://github.com/zaryif/Minimal_os/releases/latest)**
+**[Download Minimal OS Launcher v1.9.9 (Build 30) APK](https://github.com/zaryif/Minimal_os/releases/latest)**
 
 *(Or download specific tag releases from [Releases](https://github.com/zaryif/Minimal_os/releases))*
 

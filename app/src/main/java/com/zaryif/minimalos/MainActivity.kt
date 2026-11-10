@@ -12,6 +12,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -309,23 +311,13 @@ fun MinimalAppContent(
                     (slideInHorizontally(tween(180)) { -it / 6 } + fadeIn(tween(180)))
                         .togetherWith(slideOutHorizontally(tween(180, easing = FastOutLinearInEasing)) { it / 4 } + fadeOut(tween(180)))
                 }
-                // Navigating to/from WIDGETS DECK: slide from left
-                targetState == ScreenState.WIDGETS -> {
-                    (slideInHorizontally(spring(dampingRatio = 0.85f, stiffness = 500f)) { -it / 4 } + fadeIn(tween(200)))
-                        .togetherWith(slideOutHorizontally(tween(160)) { it / 6 } + fadeOut(tween(160)))
+                // Navigating to/from WIDGETS DECK: instant switch with zero animation
+                targetState == ScreenState.WIDGETS || initialState == ScreenState.WIDGETS -> {
+                    EnterTransition.None.togetherWith(ExitTransition.None)
                 }
-                initialState == ScreenState.WIDGETS -> {
-                    (slideInHorizontally(tween(180)) { it / 6 } + fadeIn(tween(180)))
-                        .togetherWith(slideOutHorizontally(tween(180, easing = FastOutLinearInEasing)) { -it / 4 } + fadeOut(tween(180)))
-                }
-                // Navigating to/from HUB: horizontal slide like widgets deck
-                targetState == ScreenState.HUB -> {
-                    (slideInHorizontally(spring(dampingRatio = 0.85f, stiffness = 500f)) { -it / 4 } + fadeIn(tween(200)))
-                        .togetherWith(slideOutHorizontally(tween(160)) { it / 6 } + fadeOut(tween(160)))
-                }
-                initialState == ScreenState.HUB -> {
-                    (slideInHorizontally(tween(180)) { it / 6 } + fadeIn(tween(180)))
-                        .togetherWith(slideOutHorizontally(tween(180, easing = FastOutLinearInEasing)) { -it / 4 } + fadeOut(tween(180)))
+                // Navigating to/from HUB: instant switch with zero animation
+                targetState == ScreenState.HUB || initialState == ScreenState.HUB -> {
+                    EnterTransition.None.togetherWith(ExitTransition.None)
                 }
                 else -> {
                     fadeIn(tween(220)).togetherWith(fadeOut(tween(180)))

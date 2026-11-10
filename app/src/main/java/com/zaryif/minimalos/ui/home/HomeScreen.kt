@@ -473,14 +473,6 @@ fun HomeScreen(
                                 modifier = Modifier.size(22.dp)
                             )
                         }
-                        IconButton(onClick = { showQuickNoteSheet = true }, modifier = Modifier.size(36.dp)) {
-                            Icon(
-                                imageVector = Icons.Default.PushPin,
-                                contentDescription = "Quick Note",
-                                tint = if (quickNote.isNotBlank()) MinimalRed else MinimalGray,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
                         IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(36.dp)) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
