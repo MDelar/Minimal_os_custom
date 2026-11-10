@@ -427,6 +427,7 @@ fun HubScreen(
                             NotificationCategory.MESSAGE -> Icons.Default.ChatBubbleOutline to "Messages"
                             NotificationCategory.CALLS -> Icons.Default.Phone to "Calls"
                             NotificationCategory.EMAIL -> Icons.Default.Email to "Email"
+                            else -> Icons.Default.NotificationsNone to "Other"
                         }
 
                         Box(
