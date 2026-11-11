@@ -21,9 +21,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,11 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,9 +46,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.zaryif.minimalos.data.preferences.UserPreferences
 import com.zaryif.minimalos.domain.quicknote.QuickNoteManager
 import com.zaryif.minimalos.ui.theme.MinimalBlack
 import com.zaryif.minimalos.ui.theme.MinimalCardBg
@@ -60,7 +57,8 @@ import com.zaryif.minimalos.ui.theme.MinimalDarkGray
 import com.zaryif.minimalos.ui.theme.MinimalGray
 import com.zaryif.minimalos.ui.theme.MinimalRed
 import com.zaryif.minimalos.ui.theme.MinimalWhite
-import kotlinx.coroutines.launch
+import com.zaryif.minimalos.util.AppStrings
+import com.zaryif.minimalos.util.NotificationExporter
 
 @Composable
 fun MinimalHomeQuickNoteWidget(
@@ -76,78 +74,119 @@ fun MinimalHomeQuickNoteWidget(
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize(animationSpec = spring(dampingRatio = 0.82f, stiffness = 400f))
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(MinimalCardBg)
-            .border(1.dp, MinimalDarkGray, RoundedCornerShape(12.dp))
+            .border(1.dp, MinimalDarkGray, RoundedCornerShape(14.dp))
             .padding(14.dp)
     ) {
         Column {
+            // Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f, fill = false)
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.PushPin,
-                        contentDescription = "Pinned Note",
+                        contentDescription = "Pinned",
                         tint = MinimalRed,
                         modifier = Modifier.size(13.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "quick note",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = AppStrings.quickNoteTitle,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = MinimalWhite,
-                        letterSpacing = 0.5.sp
+                        letterSpacing = 0.3.sp
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MinimalDarkCardBg)
-                            .border(0.5.dp, MinimalDarkGray, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 5.dp, vertical = 1.dp)
-                    ) {
-                        Text(
-                            text = "pinned",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MinimalRed,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
                 }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (quickNoteText.isNotBlank()) {
+                        // Quick Pin Button (commits and pins immediately)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MinimalDarkCardBg)
+                                .border(1.dp, MinimalRed.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                                .clickable {
+                                    QuickNoteManager.postNotification(context, quickNoteText.trim())
+                                }
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.PushPin,
+                                    contentDescription = null,
+                                    tint = MinimalRed,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = AppStrings.quickNotePinBtn,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MinimalWhite
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // Quick send to AI Assistant button
+                        IconButton(
+                            onClick = {
+                                NotificationExporter.shareTextWithAssistant(
+                                    context = context,
+                                    text = quickNoteText,
+                                    promptPrefix = AppStrings.quickNoteAiPromptPrefix
+                                )
+                            },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = "Summarize with AI",
+                                tint = MinimalRed,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(2.dp))
+
+                        // Clear Button
                         Text(
-                            text = "clear",
+                            text = AppStrings.quickNoteClearBtn,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MinimalRed,
+                            fontWeight = FontWeight.Medium,
+                            color = MinimalGray,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
-                                .clickable { onClear() }
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .clickable {
+                                    onClear()
+                                    QuickNoteManager.cancelNotification(context)
+                                }
+                                .padding(horizontal = 6.dp, vertical = 3.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
                     }
+
+                    // Expand to Fullscreen
                     IconButton(
                         onClick = onOpenFullScreen,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Fullscreen,
-                            contentDescription = "Expand Fullscreen",
+                            contentDescription = "Expand",
                             tint = MinimalGray,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(17.dp)
                         )
                     }
                 }
@@ -155,39 +194,58 @@ fun MinimalHomeQuickNoteWidget(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Black space scratchpad with reliable tap-to-type input
+            // Smooth direct text input box: hitting Enter or Done pins notification
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 52.dp, max = 130.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MinimalDarkCardBg.copy(alpha = 0.8f))
-                    .border(1.dp, MinimalDarkGray.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                    .padding(10.dp)
+                    .heightIn(min = 60.dp, max = 150.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MinimalDarkCardBg)
+                    .border(1.dp, MinimalDarkGray.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
                 BasicTextField(
                     value = quickNoteText,
                     onValueChange = { newText ->
-                        onNoteChange(newText)
-                        QuickNoteManager.postNotification(context, newText)
+                        if (newText.contains("\n")) {
+                            // User pressed Enter key on keyboard -> pin to status bar!
+                            val cleanText = newText.replace("\n", "").trim()
+                            onNoteChange(cleanText)
+                            if (cleanText.isNotBlank()) {
+                                QuickNoteManager.postNotification(context, cleanText)
+                            } else {
+                                QuickNoteManager.cancelNotification(context)
+                            }
+                        } else {
+                            onNoteChange(newText)
+                        }
                     },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            val trimmed = quickNoteText.trim()
+                            if (trimmed.isNotBlank()) {
+                                QuickNoteManager.postNotification(context, trimmed)
+                            } else {
+                                QuickNoteManager.cancelNotification(context)
+                            }
+                        }
+                    ),
                     textStyle = TextStyle(
                         color = MinimalWhite,
                         fontSize = 13.sp,
-                        lineHeight = 18.sp,
+                        lineHeight = 19.sp,
                         fontFamily = FontFamily.SansSerif
                     ),
                     cursorBrush = SolidColor(MinimalRed),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 40.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         if (quickNoteText.isEmpty()) {
                             Text(
-                                text = "Type note here · Pinned to status bar...",
+                                text = AppStrings.quickNotePlaceholder,
                                 color = MinimalDarkGray,
                                 fontSize = 13.sp,
-                                lineHeight = 18.sp
+                                lineHeight = 19.sp
                             )
                         }
                         innerTextField()
@@ -243,74 +301,100 @@ fun MinimalQuickNoteBlackSpaceSheet(
                         imageVector = Icons.Default.PushPin,
                         contentDescription = "Pinned",
                         tint = MinimalRed,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "QUICK NOTE",
-                        fontSize = 15.sp,
+                        text = AppStrings.quickNoteTitle,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = MinimalWhite,
-                        letterSpacing = 1.sp
+                        letterSpacing = (-0.2).sp
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MinimalDarkCardBg)
-                            .border(0.5.dp, MinimalDarkGray, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "PINNED",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MinimalRed,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (quickNoteText.isNotBlank()) {
-                        Text(
-                            text = "CLEAR",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MinimalGray,
-                            letterSpacing = 0.5.sp,
+                        // AI Summary action
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .clickable { onClear() }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MinimalDarkCardBg)
+                                .border(1.dp, MinimalDarkGray, RoundedCornerShape(6.dp))
+                                .clickable {
+                                    NotificationExporter.shareTextWithAssistant(
+                                        context = context,
+                                        text = quickNoteText,
+                                        promptPrefix = AppStrings.quickNoteAiPromptPrefix
+                                    )
+                                }
+                                .padding(horizontal = 8.dp, vertical = 5.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = MinimalRed,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = AppStrings.quickNoteAiSummarize,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MinimalWhite
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = AppStrings.quickNoteClearBtn,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MinimalGray,
+                            modifier = Modifier
+                                .clickable {
+                                    onClear()
+                                    QuickNoteManager.cancelNotification(context)
+                                }
+                                .padding(horizontal = 6.dp, vertical = 4.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                     }
 
                     Text(
-                        text = "DONE",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = AppStrings.quickNoteDoneBtn,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = MinimalRed,
-                        letterSpacing = 0.5.sp,
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
                             .background(MinimalDarkCardBg)
                             .border(1.dp, MinimalDarkGray, RoundedCornerShape(6.dp))
-                            .clickable { onDismiss() }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .clickable {
+                                val trimmed = quickNoteText.trim()
+                                if (trimmed.isNotBlank()) {
+                                    QuickNoteManager.postNotification(context, trimmed)
+                                } else {
+                                    QuickNoteManager.cancelNotification(context)
+                                }
+                                onDismiss()
+                            }
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // The pure distraction-free black space
+            // The pure distraction-free text editor
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MinimalDarkCardBg.copy(alpha = 0.4f))
+                    .background(MinimalDarkCardBg.copy(alpha = 0.5f))
                     .border(1.dp, MinimalDarkGray.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                     .padding(16.dp)
             ) {
@@ -318,8 +402,18 @@ fun MinimalQuickNoteBlackSpaceSheet(
                     value = quickNoteText,
                     onValueChange = { newText ->
                         onNoteChange(newText)
-                        QuickNoteManager.postNotification(context, newText)
                     },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            val trimmed = quickNoteText.trim()
+                            if (trimmed.isNotBlank()) {
+                                QuickNoteManager.postNotification(context, trimmed)
+                            } else {
+                                QuickNoteManager.cancelNotification(context)
+                            }
+                        }
+                    ),
                     textStyle = TextStyle(
                         color = MinimalWhite,
                         fontSize = 15.sp,
@@ -333,7 +427,7 @@ fun MinimalQuickNoteBlackSpaceSheet(
                     decorationBox = { innerTextField ->
                         if (quickNoteText.isEmpty()) {
                             Text(
-                                text = "What's on your mind? Jot anything here...\n\nWhatever you write here stays persistently pinned to your phone's notification bar so you never forget.",
+                                text = AppStrings.quickNoteSheetPlaceholder,
                                 color = MinimalDarkGray,
                                 fontSize = 15.sp,
                                 lineHeight = 22.sp
@@ -346,4 +440,3 @@ fun MinimalQuickNoteBlackSpaceSheet(
         }
     }
 }
-

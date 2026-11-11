@@ -53,6 +53,7 @@ import com.zaryif.minimalos.ui.theme.MinimalWhite
 import com.zaryif.minimalos.ui.theme.MinimalOnAccent
 import com.zaryif.minimalos.ui.theme.AppleSanFranciscoFontFamily
 import com.zaryif.minimalos.domain.timer.PomodoroTimerManager
+import com.zaryif.minimalos.util.AppStrings
 import android.app.AlarmManager
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
@@ -210,7 +211,7 @@ fun MinimalHomeTodosWidget(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "tasks",
+                            text = AppStrings.widgetTasksTitle,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = MinimalWhite,
@@ -221,7 +222,7 @@ fun MinimalHomeTodosWidget(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (activeTodos.size > 2) {
                             Text(
-                                text = if (isExpanded) "collapse" else "all (${activeTodos.size})",
+                                text = if (isExpanded) AppStrings.widgetCollapse else "all (${activeTodos.size})",
                                 fontSize = 11.sp,
                                 color = MinimalRed,
                                 fontWeight = FontWeight.SemiBold,
@@ -230,7 +231,7 @@ fun MinimalHomeTodosWidget(
                             Spacer(modifier = Modifier.width(10.dp))
                         }
                         Text(
-                            text = "open memo",
+                            text = AppStrings.widgetOpenMemo,
                             fontSize = 11.sp,
                             color = MinimalGray,
                             modifier = Modifier.clickable { onOpenMemo() }
@@ -305,7 +306,7 @@ fun MinimalHomeNotesWidget(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "notes",
+                            text = AppStrings.widgetNotesTitle,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = MinimalWhite,
@@ -316,7 +317,7 @@ fun MinimalHomeNotesWidget(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (notes.size > 2) {
                             Text(
-                                text = if (isExpanded) "collapse" else "all (${notes.size})",
+                                text = if (isExpanded) AppStrings.widgetCollapse else "all (${notes.size})",
                                 fontSize = 11.sp,
                                 color = MinimalRed,
                                 fontWeight = FontWeight.SemiBold,
@@ -325,7 +326,7 @@ fun MinimalHomeNotesWidget(
                             Spacer(modifier = Modifier.width(10.dp))
                         }
                         Text(
-                            text = "open memo",
+                            text = AppStrings.widgetOpenMemo,
                             fontSize = 11.sp,
                             color = MinimalGray,
                             modifier = Modifier.clickable { onOpenMemo() }
@@ -393,14 +394,14 @@ fun MinimalHomeCalendarWidget(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "calendar",
+                        text = AppStrings.widgetCalendarTitle,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = MinimalWhite,
                         letterSpacing = 0.5.sp
                     )
                     Text(
-                        text = "view schedule & events",
+                        text = AppStrings.widgetCalendarSubtitle,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Normal,
                         color = MinimalGray
@@ -483,7 +484,7 @@ fun MinimalHomeSystemWidgetsSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "widgets",
+                text = AppStrings.deckTitle,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = MinimalWhite,
@@ -506,7 +507,7 @@ fun MinimalHomeSystemWidgetsSection(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "ADD WIDGET",
+                    text = AppStrings.deckAddWidgetBtn,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = MinimalWhite
@@ -526,7 +527,7 @@ fun MinimalHomeSystemWidgetsSection(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "+ Add system app widget (Spotify, Weather, Calendar)",
+                    text = AppStrings.widgetAddWidgetPlaceholder,
                     fontSize = 12.sp,
                     color = MinimalGray
                 )
@@ -635,7 +636,7 @@ fun MinimalHomeAlarmCountdownWidget(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "NEXT ALARM",
+                            text = AppStrings.widgetNextAlarmTitle,
                             fontFamily = AppleSanFranciscoFontFamily,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -653,7 +654,7 @@ fun MinimalHomeAlarmCountdownWidget(
                             .padding(horizontal = 7.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = "● ACTIVE",
+                            text = AppStrings.widgetAlarmActive,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = MinimalRed
@@ -699,7 +700,7 @@ fun MinimalHomeAlarmCountdownWidget(
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = "CLOCK PERMISSION NEEDED",
+                            text = AppStrings.widgetClockPermissionNeeded,
                             fontFamily = AppleSanFranciscoFontFamily,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -708,7 +709,7 @@ fun MinimalHomeAlarmCountdownWidget(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Tap to grant exact alarm permission",
+                            text = AppStrings.widgetGrantPermissionHint,
                             fontFamily = AppleSanFranciscoFontFamily,
                             fontSize = 12.sp,
                             color = MinimalGray
@@ -724,7 +725,7 @@ fun MinimalHomeAlarmCountdownWidget(
                         .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = "GRANT",
+                        text = AppStrings.widgetGrantBtn,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         color = MinimalRed
@@ -747,7 +748,7 @@ fun MinimalHomeAlarmCountdownWidget(
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = "NO UPCOMING ALARM",
+                            text = AppStrings.widgetNoUpcomingAlarm,
                             fontFamily = AppleSanFranciscoFontFamily,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -756,7 +757,7 @@ fun MinimalHomeAlarmCountdownWidget(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Tap to configure an alarm in deck",
+                            text = AppStrings.widgetConfigureAlarmHint,
                             fontFamily = AppleSanFranciscoFontFamily,
                             fontSize = 12.sp,
                             color = MinimalDarkGray
@@ -765,7 +766,7 @@ fun MinimalHomeAlarmCountdownWidget(
                 }
 
                 Text(
-                    text = "● STANDBY",
+                    text = AppStrings.widgetAlarmStandby,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     color = MinimalDarkGray

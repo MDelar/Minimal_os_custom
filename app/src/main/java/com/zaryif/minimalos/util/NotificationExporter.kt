@@ -115,6 +115,49 @@ object NotificationExporter {
     }
 
     /**
+     * Sends plain text or a note directly to the configured AI Assistant (or shares via intent)
+     * with an intelligent summarizing prompt prepended.
+     */
+    fun shareTextWithAssistant(
+        context: Context,
+        text: String,
+        promptPrefix: String = "Please summarize, organize, and extract key action items from this note:\n\n",
+        assistantPackage: String? = null
+    ) {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) {
+            Toast.makeText(context, "Note is empty", Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            val fullPrompt = "$promptPrefix$trimmed"
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, fullPrompt)
+                putExtra(Intent.EXTRA_SUBJECT, "AI Summary")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            if (!assistantPackage.isNullOrBlank() && assistantPackage != "SYSTEM_DEFAULT") {
+                val targetIntent = Intent(shareIntent).apply {
+                    `package` = assistantPackage
+                }
+                if (targetIntent.resolveActivity(context.packageManager) != null) {
+                    context.startActivity(targetIntent)
+                    return
+                }
+            }
+
+            val chooser = Intent.createChooser(shareIntent, "Send to AI Assistant").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
      * Directly downloads the notification history as a .txt file to the device's public Downloads directory.
      * Uses MediaStore.Downloads on Android 10+ (Q+) without requiring legacy storage permissions,
      * and falls back to Environment.DIRECTORY_DOWNLOADS on older Android versions.

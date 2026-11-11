@@ -41,6 +41,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apps
@@ -114,6 +115,7 @@ import com.zaryif.minimalos.ui.theme.MinimalRed
 import com.zaryif.minimalos.ui.theme.MinimalThemeRegistry
 import com.zaryif.minimalos.ui.theme.MinimalWhite
 import com.zaryif.minimalos.ui.theme.MinimalOnAccent
+import com.zaryif.minimalos.util.AppStrings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -135,7 +137,9 @@ fun SettingsScreen(
 
     // Preferences collection
     val assistantPackage by userPreferences.assistantPackage.collectAsState(initial = null)
-    val showCommandFeedback by userPreferences.showCommandFeedback.collectAsState(initial = true)
+    val showCommandFeedback by userPreferences.showCommandFeedback.collectAsState(initial = false)
+    val showTerminalBufferIcon by userPreferences.showTerminalBufferIcon.collectAsState(initial = true)
+    val showCommandHelperIcon by userPreferences.showCommandHelperIcon.collectAsState(initial = true)
     val customWallpaperUri by userPreferences.customWallpaperUri.collectAsState(initial = null)
     val favoriteAppPackages by userPreferences.favoriteApps.collectAsState(initial = emptySet())
     val currentThemeId by userPreferences.themeId.collectAsState(initial = "AMOLED_RED")
@@ -311,14 +315,14 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "settings",
+                        text = AppStrings.settingsTitle,
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Bold,
                         color = MinimalWhite,
                         letterSpacing = (-0.5).sp
                     )
                     Text(
-                        text = "system · appearance · shortcuts · cards",
+                        text = AppStrings.settingsSubtitle,
                         fontSize = 11.sp,
                         color = MinimalGray
                     )
@@ -352,7 +356,7 @@ fun SettingsScreen(
                     Box(modifier = Modifier.weight(1f)) {
                         if (searchQuery.isEmpty()) {
                             Text(
-                                text = "Search settings…",
+                                text = AppStrings.settingsSearchPlaceholder,
                                 fontSize = 14.sp,
                                 color = MinimalGray
                             )
@@ -393,14 +397,14 @@ fun SettingsScreen(
             // =========================================================
             val appearanceKeywords = listOf("appearance", "theme", "themes", "color", "accent", "wallpaper", "personalization")
             if (q.isEmpty() || appearanceKeywords.any { it.contains(q) || q.contains(it) }) {
-                SettingsSectionHeader(title = "APPEARANCE & PERSONALIZATION")
+                SettingsSectionHeader(title = AppStrings.settingsSecAppearance)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsGroupCard {
                     // Item 1: Theme & Accent
                     SettingsItemRow(
                         icon = Icons.Default.Palette,
-                        title = "Themes & Accents",
+                        title = AppStrings.settingsThemeTitle,
                         subtitle = activeTheme.name,
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -505,7 +509,7 @@ fun SettingsScreen(
 
                     SettingsItemRow(
                         icon = Icons.Default.Wallpaper,
-                        title = "Wallpaper & Style",
+                        title = AppStrings.settingsWallpaperTitle,
                         subtitle = wallpaperLabel,
                         trailingContent = {
                             Icon(
@@ -648,14 +652,14 @@ fun SettingsScreen(
             // =========================================================
             val homeKeywords = listOf("home", "shortcut", "shortcuts", "widget", "widgets", "system", "todo", "task", "tasks", "note", "notes", "alarm", "pomodoro")
             if (q.isEmpty() || homeKeywords.any { it.contains(q) || q.contains(it) }) {
-                SettingsSectionHeader(title = "HOME SCREEN & SHORTCUTS")
+                SettingsSectionHeader(title = AppStrings.settingsSecHome)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsGroupCard {
                     // Item 1: Pinned App Shortcuts
                     SettingsItemRow(
                         icon = Icons.Default.Apps,
-                        title = "Pinned App Shortcuts",
+                        title = AppStrings.settingsPinnedShortcutsTitle,
                         subtitle = if (favoriteAppsList.isEmpty()) "No shortcuts pinned" else "${favoriteAppsList.size} apps pinned to Home",
                         trailingContent = {
                             Icon(
@@ -711,7 +715,7 @@ fun SettingsScreen(
 
                     SettingsItemRow(
                         icon = Icons.Default.Widgets,
-                        title = "Home Widgets & Order",
+                        title = AppStrings.settingsHomeWidgetsTitle,
                         subtitle = "${homeWidgets.size} active widgets on Home",
                         trailingContent = {
                             Icon(
@@ -860,7 +864,7 @@ fun SettingsScreen(
                     // Item 3: Show All Tasks on Home
                     SettingsItemRow(
                         icon = Icons.Default.Checklist,
-                        title = "Show All Tasks on Home",
+                        title = AppStrings.settingsShowAllTasksTitle,
                         subtitle = if (showAllTodosPref) "Displays complete task list" else "Displays top 2 active focus tasks",
                         trailingContent = {
                             Switch(
@@ -881,7 +885,7 @@ fun SettingsScreen(
                     // Item 4: Show All Notes on Home
                     SettingsItemRow(
                         icon = Icons.Default.Description,
-                        title = "Show All Notes on Home",
+                        title = AppStrings.settingsShowAllNotesTitle,
                         subtitle = if (showAllNotesPref) "Displays full memo notes list" else "Displays 2 most recent notes",
                         trailingContent = {
                             Switch(
@@ -905,11 +909,10 @@ fun SettingsScreen(
             // =========================================================
             val deckKeywords = listOf("deck", "widget", "widgets", "card", "cards", "pomodoro", "alarm", "alarms", "alias", "aliases", "timer", "timers", "system")
             if (q.isEmpty() || deckKeywords.any { it.contains(q) || q.contains(it) }) {
-                SettingsSectionHeader(title = "WIDGETS DECK (PAGE 3)")
+                SettingsSectionHeader(title = AppStrings.settingsSecDeck)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val allDeckWidgetOptions = listOf(
-                    Pair("QUICK_NOTE", "quick note (pinned scratchpad)"),
                     Pair("NOTES", "notes card"),
                     Pair("TODOS", "tasks card"),
                     Pair("CALENDAR", "schedule & events card"),
@@ -923,7 +926,7 @@ fun SettingsScreen(
                 SettingsGroupCard {
                     SettingsItemRow(
                         icon = Icons.Default.ViewAgenda,
-                        title = "Deck Cards Arrangement",
+                        title = AppStrings.settingsDeckCardsTitle,
                         subtitle = "${deckWidgetsOrder.size} interactive cards on Deck",
                         trailingContent = {
                             Icon(
@@ -1072,14 +1075,56 @@ fun SettingsScreen(
             // =========================================================
             val commandKeywords = listOf("command", "commands", "alias", "aliases", "feedback", "popup", "history", "terminal")
             if (q.isEmpty() || commandKeywords.any { it.contains(q) || q.contains(it) }) {
-                SettingsSectionHeader(title = "COMMAND BAR & SHORTCUTS")
+                SettingsSectionHeader(title = AppStrings.settingsSecCommand)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsGroupCard {
+                    // Item 0a: Show Terminal Buffer Icon
+                    SettingsItemRow(
+                        icon = Icons.Default.Terminal,
+                        title = AppStrings.settingsTerminalBufferIconTitle,
+                        subtitle = AppStrings.settingsTerminalBufferIconDesc,
+                        trailingContent = {
+                            Switch(
+                                checked = showTerminalBufferIcon,
+                                onCheckedChange = { scope.launch { userPreferences.setShowTerminalBufferIcon(it) } },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MinimalWhite,
+                                    checkedTrackColor = MinimalRed,
+                                    uncheckedThumbColor = MinimalGray,
+                                    uncheckedTrackColor = MinimalDarkCardBg
+                                )
+                            )
+                        }
+                    )
+
+                    SettingsInsetDivider()
+
+                    // Item 0b: Command Helper Icon
+                    SettingsItemRow(
+                        icon = Icons.AutoMirrored.Filled.HelpOutline,
+                        title = AppStrings.settingsCommandHelperIconTitle,
+                        subtitle = AppStrings.settingsCommandHelperIconDesc,
+                        trailingContent = {
+                            Switch(
+                                checked = showCommandHelperIcon,
+                                onCheckedChange = { scope.launch { userPreferences.setShowCommandHelperIcon(it) } },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MinimalWhite,
+                                    checkedTrackColor = MinimalRed,
+                                    uncheckedThumbColor = MinimalGray,
+                                    uncheckedTrackColor = MinimalDarkCardBg
+                                )
+                            )
+                        }
+                    )
+
+                    SettingsInsetDivider()
+
                     // Item 1: Custom Command Aliases
                     SettingsItemRow(
                         icon = Icons.Default.Terminal,
-                        title = "Command Aliases",
+                        title = AppStrings.settingsAliasesTitle,
                         subtitle = if (customCommands.isEmpty()) "Tap to add triggers (yt, wifi, gh)" else "${customCommands.size} custom keywords active",
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1168,8 +1213,8 @@ fun SettingsScreen(
                     // Item 2: Action Confirmation Feedback
                     SettingsItemRow(
                         icon = Icons.Default.NotificationsActive,
-                        title = "Action Confirmation Popups",
-                        subtitle = "Show transient 'Saved task' / 'Saved note' banner",
+                        title = AppStrings.settingsFeedbackTitle,
+                        subtitle = AppStrings.settingsFeedbackDesc,
                         trailingContent = {
                             Switch(
                                 checked = showCommandFeedback,
@@ -1189,7 +1234,7 @@ fun SettingsScreen(
                     // Item 3: Command Box History
                     SettingsItemRow(
                         icon = Icons.Default.History,
-                        title = "Command Box History",
+                        title = AppStrings.settingsHistoryTitle,
                         subtitle = if (commandHistoryEnabled) "Buffer and cycle buttons enabled in command bar" else "History buffer and cycle buttons disabled",
                         trailingContent = {
                             Switch(
@@ -1210,7 +1255,7 @@ fun SettingsScreen(
                     // Item 4: Download History (.md)
                     SettingsItemRow(
                         icon = Icons.Default.Description,
-                        title = "Download History (.md)",
+                        title = AppStrings.settingsExportHistoryTitle,
                         subtitle = if (commandHistory.isEmpty()) "Buffer empty · No command history to export" else "${commandHistory.size} commands in buffer · Save as markdown file",
                         trailingContent = {
                             Box(
@@ -1247,7 +1292,7 @@ fun SettingsScreen(
             // =========================================================
             val systemKeywords = listOf("assistant", "assistants", "system", "launcher", "notification", "notifications", "clock", "alarm", "permission")
             if (q.isEmpty() || systemKeywords.any { it.contains(q) || q.contains(it) }) {
-                SettingsSectionHeader(title = "SYSTEM & ASSISTANT")
+                SettingsSectionHeader(title = AppStrings.settingsSecSystem)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsGroupCard {
@@ -1262,7 +1307,7 @@ fun SettingsScreen(
 
                     SettingsItemRow(
                         icon = Icons.Default.AutoAwesome,
-                        title = "Digital Assistant",
+                        title = AppStrings.settingsAssistantTitle,
                         subtitle = currentAssistantName,
                         trailingContent = {
                             Icon(
@@ -1354,7 +1399,7 @@ fun SettingsScreen(
                     // Item 2: Set as Default Launcher
                     SettingsItemRow(
                         icon = Icons.Default.Home,
-                        title = "Default Home Launcher",
+                        title = AppStrings.settingsLauncherTitle,
                         subtitle = "Configure Minimal OS as your primary home",
                         trailingContent = {
                             Icon(
@@ -1380,7 +1425,7 @@ fun SettingsScreen(
                     // Item 3: Notification Hub Access
                     SettingsItemRow(
                         icon = Icons.Default.Notifications,
-                        title = "Notification Hub Access",
+                        title = AppStrings.settingsHubAccessTitle,
                         subtitle = "Grant permissions for unified notifications",
                         trailingContent = {
                             Icon(
@@ -1401,7 +1446,7 @@ fun SettingsScreen(
                     // Item 4: Save Notification History Toggle
                     SettingsItemRow(
                         icon = Icons.Default.History,
-                        title = "Save Notification History",
+                        title = AppStrings.settingsSaveHistoryTitle,
                         subtitle = if (notificationHistoryEnabled) "Archive incoming alerts locally for Hub and AI export" else "Notification archiving is disabled",
                         trailingContent = {
                             Switch(
@@ -1431,7 +1476,7 @@ fun SettingsScreen(
                     // Item 5: Download Notification History (.txt)
                     SettingsItemRow(
                         icon = Icons.Default.Download,
-                        title = "Download Notification History (.txt)",
+                        title = AppStrings.settingsDownloadHistoryTitle,
                         subtitle = "Export stored alerts directly to your Downloads folder",
                         trailingContent = {
                             Icon(
@@ -1455,15 +1500,15 @@ fun SettingsScreen(
             // =========================================================
             val aboutKeywords = listOf("about", "version", "release", "developer", "author", "zarif", "coffee", "support", "onboarding", "guide", "docs", "license")
             if (q.isEmpty() || aboutKeywords.any { it.contains(q) || q.contains(it) }) {
-                SettingsSectionHeader(title = "ABOUT & INFORMATION")
+                SettingsSectionHeader(title = AppStrings.settingsSecAbout)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsGroupCard {
                     // 1. App Info & Version (Click to open full modal)
                     SettingsItemRow(
                         icon = Icons.Default.Info,
-                        title = "Minimal OS Launcher",
-                        subtitle = "v$appVersionName (Build $appVersionCode) · Tap for architecture & details",
+                        title = AppStrings.settingsAboutLauncherTitle,
+                        subtitle = "v$appVersionName (Build $appVersionCode) · ${AppStrings.settingsAboutLauncherSubtitle}",
                         trailingContent = {
                             Box(
                                 modifier = Modifier
@@ -1483,8 +1528,8 @@ fun SettingsScreen(
                     // 1b. Complete Command Reference & Guide (Click to check it out)
                     SettingsItemRow(
                         icon = Icons.Default.Terminal,
-                        title = "Command Reference & Guide",
-                        subtitle = "Browse all 16 command symbols, custom aliases, and natural syntax",
+                        title = AppStrings.settingsCommandGuideTitle,
+                        subtitle = AppStrings.settingsCommandGuideSubtitle,
                         trailingContent = {
                             Box(
                                 modifier = Modifier
@@ -1503,8 +1548,8 @@ fun SettingsScreen(
                     // 2. Developer & Creator
                     SettingsItemRow(
                         icon = Icons.Default.Person,
-                        title = "Developer & Creator",
-                        subtitle = "MD. Zarif Azfar (@zaryif) · Dhaka, Bangladesh",
+                        title = AppStrings.settingsDeveloperTitle,
+                        subtitle = AppStrings.settingsDeveloperSubtitle,
                         trailingContent = {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -1524,8 +1569,8 @@ fun SettingsScreen(
                     // 3. Support & Fund Project (Buy Me a Coffee)
                     SettingsItemRow(
                         icon = Icons.Default.Favorite,
-                        title = "Support the Project",
-                        subtitle = "buymeacoffee.com/zaryif · Fund open-source development",
+                        title = AppStrings.settingsSupportTitle,
+                        subtitle = AppStrings.settingsSupportSubtitle,
                         trailingContent = {
                             Box(
                                 modifier = Modifier
@@ -1547,8 +1592,8 @@ fun SettingsScreen(
                     // 4. App Walkthrough & Guide (Onboarding)
                     SettingsItemRow(
                         icon = Icons.Default.AutoAwesome,
-                        title = "App Walkthrough & Guide",
-                        subtitle = "Interactive tutorial on command gestures, hub, & philosophy",
+                        title = AppStrings.settingsWalkthroughTitle,
+                        subtitle = AppStrings.settingsWalkthroughSubtitle,
                         trailingContent = {
                             Box(
                                 modifier = Modifier
@@ -1568,8 +1613,8 @@ fun SettingsScreen(
                     // 5. Reset Onboarding Experience
                     SettingsItemRow(
                         icon = Icons.Default.Clear,
-                        title = "Reset Onboarding Experience",
-                        subtitle = "Clear completed state and restart the 5-step walkthrough",
+                        title = AppStrings.settingsResetOnboardingTitle,
+                        subtitle = AppStrings.settingsResetOnboardingSubtitle,
                         trailingContent = {
                             Box(
                                 modifier = Modifier
@@ -1594,8 +1639,8 @@ fun SettingsScreen(
                     // 5. GitHub Releases & Source Code
                     SettingsItemRow(
                         icon = Icons.Default.Code,
-                        title = "GitHub Releases & Source Code",
-                        subtitle = "github.com/zaryif/Minimal_os · Latest APKs & commits",
+                        title = AppStrings.settingsGithubTitle,
+                        subtitle = AppStrings.settingsGithubSubtitle,
                         trailingContent = {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
