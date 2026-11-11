@@ -35,7 +35,7 @@ object CommandParser {
         PrefixMapping(listOf("pomodoro", "pomo"), CommandType.POMODORO, requireSpace = false),
         PrefixMapping(listOf("yt", "youtube"), CommandType.YOUTUBE, requireSpace = false),
         PrefixMapping(listOf("uninstall", "remove", "rmapp"), CommandType.UNINSTALL, requireSpace = false),
-        PrefixMapping(listOf("quicknote", "quick note", "qn"), CommandType.QUICK_NOTE, requireSpace = false),
+        PrefixMapping(listOf("pinit", "pin it", "quicknote", "quick note", "qn"), CommandType.QUICK_NOTE, requireSpace = false),
         PrefixMapping(listOf("pin", "fav"), CommandType.PIN, requireSpace = false),
         PrefixMapping(listOf("unpin", "unfav"), CommandType.UNPIN, requireSpace = false),
         PrefixMapping(listOf("call", "dial"), CommandType.CALL, requireSpace = false),

@@ -135,6 +135,8 @@ fun HomeScreen(
     val showAllTodosPref by userPreferences.homeShowAllTodos.collectAsState(initial = false)
     val showAllNotesPref by userPreferences.homeShowAllNotes.collectAsState(initial = false)
     val showCommandFeedback by userPreferences.showCommandFeedback.collectAsState(initial = false)
+    val showTerminalBufferIcon by userPreferences.showTerminalBufferIcon.collectAsState(initial = true)
+    val showCommandHelperIcon by userPreferences.showCommandHelperIcon.collectAsState(initial = true)
     val assistantPackage by userPreferences.assistantPackage.collectAsState(initial = null)
     val commandHistoryEnabled by userPreferences.commandHistoryEnabled.collectAsState(initial = true)
     val commandHistory by userPreferences.commandHistory.collectAsState(initial = emptyList())
@@ -417,15 +419,25 @@ fun HomeScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, dragAmount ->
-                        if (!isTyping) {
-                            if (dragAmount > 30) {
-                                onNavigateToHub()
-                            } else if (dragAmount < -30) {
-                                onNavigateToWidgets()
+                    var isNavigating = false
+                    detectHorizontalDragGestures(
+                        onDragStart = { isNavigating = false },
+                        onDragEnd = { isNavigating = false },
+                        onDragCancel = { isNavigating = false },
+                        onHorizontalDrag = { change, dragAmount ->
+                            if (!isTyping && !isNavigating) {
+                                if (dragAmount > 28) {
+                                    isNavigating = true
+                                    change.consume()
+                                    onNavigateToHub()
+                                } else if (dragAmount < -28) {
+                                    isNavigating = true
+                                    change.consume()
+                                    onNavigateToWidgets()
+                                }
                             }
                         }
-                    }
+                    )
                 }
                 .padding(horizontal = 22.dp, vertical = 8.dp)
         ) {
@@ -721,14 +733,7 @@ fun HomeScreen(
                         when (result) {
                             is CommandResult.Success -> {
                                 query = ""
-                                val isAlwaysFeedback = input.trim().lowercase().let {
-                                    it.startsWith("pin") || it.startsWith("unpin") ||
-                                    it.startsWith("fav") || it.startsWith("unfav") ||
-                                    it.startsWith("uninstall") || it.startsWith("remove") ||
-                                    it.startsWith("alias") || it.startsWith("unalias") ||
-                                    it.startsWith("qn") || it.startsWith("quicknote")
-                                }
-                                if (showCommandFeedback || isAlwaysFeedback) {
+                                if (showCommandFeedback) {
                                     notificationMessage = result.message
                                 }
                             }
@@ -763,21 +768,21 @@ fun HomeScreen(
                         if (isUninstall) {
                             val result = executeCommandUseCase.execute("uninstall ${app.packageName}")
                             when (result) {
-                                is CommandResult.Success -> notificationMessage = result.message
+                                is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
                                 is CommandResult.Error -> notificationMessage = result.error
                                 else -> {}
                             }
                         } else if (isPin) {
                             val result = executeCommandUseCase.execute("pin ${app.packageName}")
                             when (result) {
-                                is CommandResult.Success -> notificationMessage = result.message
+                                is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
                                 is CommandResult.Error -> notificationMessage = result.error
                                 else -> {}
                             }
                         } else if (isUnpin) {
                             val result = executeCommandUseCase.execute("unpin ${app.packageName}")
                             when (result) {
-                                is CommandResult.Success -> notificationMessage = result.message
+                                is CommandResult.Success -> if (showCommandFeedback) notificationMessage = result.message
                                 is CommandResult.Error -> notificationMessage = result.error
                                 else -> {}
                             }
@@ -809,7 +814,9 @@ fun HomeScreen(
                     onRequestContactPermission = {
                         contactPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
                     },
-                    onHelpRequested = { showHelpDialog = true }
+                    onHelpRequested = { showHelpDialog = true },
+                    showHelperIcon = showCommandHelperIcon,
+                    showTerminalBufferIcon = showTerminalBufferIcon
                 )
             }
         }

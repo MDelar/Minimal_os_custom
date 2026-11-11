@@ -6,7 +6,7 @@
 <br/><br/>
 
 [![Build Minimal OS Launcher APK](https://github.com/zaryif/Minimal_os/actions/workflows/build.yml/badge.svg)](https://github.com/zaryif/Minimal_os/actions/workflows/build.yml)
-[![Latest Release](https://img.shields.io/badge/release-v1.9.9%20(Build%2030)-red.svg)](https://github.com/zaryif/Minimal_os/releases/latest)
+[![Latest Release](https://img.shields.io/badge/release-v2.0.2%20(Build%2033)-red.svg)](https://github.com/zaryif/Minimal_os/releases/latest)
 [![Android](https://img.shields.io/badge/Android-8.0%20to%2016-black.svg?logo=android)](https://www.android.com)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4.svg?logo=jetpackcompose)](https://developer.android.com/jetpack/compose)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7F52FF.svg?logo=kotlin)](https://kotlinlang.org)
@@ -16,7 +16,7 @@
 
 *Type to do things. One hub for everything. Zero visual noise.*
 
-[Download Latest APK (v1.9.9)](https://github.com/zaryif/Minimal_os/releases/latest) • [Interactive GIF Demos](showcase/README.md) • [Visual Showcase](#visual-overview) • [Core Features](#core-features) • [Text Graphics & Architecture](#text-graphics--feature-architectures) • [Installation](#installation--setup) • [Architecture](#architecture--tech-stack)
+[Download Latest APK (v2.0.2)](https://github.com/zaryif/Minimal_os/releases/latest) • [Interactive GIF Demos](showcase/README.md) • [Visual Showcase](#visual-overview) • [Core Features](#core-features) • [Text Graphics & Architecture](#text-graphics--feature-architectures) • [Installation](#installation--setup) • [Architecture](#architecture--tech-stack)
 
 <br/>
 
@@ -98,7 +98,7 @@ The Command Bar is the brain of Minimal OS. It combines instant app search, cont
 
 | Command / Symbol | Action | Example | Result |
 |:---:|:---|:---|:---|
-| `qn` or `quicknote` | **Quick Note Scratchpad** | `qn Deep work until 4pm` | Pins thought to sticky notification bar and syncs with home card |
+| `pinit`, `qn`, or `quicknote` | **Pin to Notification Bar** | `pinit Deep work until 4pm` | Instantly pins thought to persistent notification bar directly from the command bar |
 | `uninstall` or `/` | **Uninstall App** | `uninstall chatgpt` or `/chatgpt` | Prompts native confirmation dialog to uninstall the app |
 | `pin` | **Pin to Home** | `pin chrome` or `pin spotify` | Pins app shortcut directly to Home screen with interactive `PIN` suggestions |
 | `unpin` | **Unpin from Home** | `unpin chrome` | Removes pinned app shortcut from Home screen |
@@ -119,21 +119,24 @@ The Command Bar is the brain of Minimal OS. It combines instant app search, cont
 > **Directory of 120+ Aliases & System Shortcuts**: Check out the comprehensive [ALIASES_AND_SHORTCUTS.md](ALIASES_AND_SHORTCUTS.md) directory for ready-to-use Android settings intents (`android.settings.WIFI_SETTINGS`, `BLUETOOTH_SETTINGS`, `BATTERY_SAVER_SETTINGS`), dynamic search engines with `{query}`, app package shortcuts, and instructions on finding intent actions and package IDs.
 
 #### Terminal Power Features:
+- **Command Bar On/Off Setting**: Complete freedom to show or turn off the command box at the bottom of the Home Screen via Settings.
+- **Command Helper Icon Toggle**: Toggle the command bar's '?' cheat sheet button on or off in Settings for an even cleaner look.
 - **Interactive Command History Stream**: When typing, past commands appear in a clean, scrollable card stream. Tap any entry to reload it into the command bar ready to edit or run.
 - **Terminal Buffer Show/Hide Toggle**: Users can toggle between full terminal buffer cards and a distraction-free minimal typing line with a dedicated `[HIDE]` / `[SHOW]` header control and command bar toggle icon.
 - **Terminal History Storage & Download (.md)**: All terminal commands are continuously logged to a structured markdown file (`minimal_command_history.md`). Users can export and download this `.md` file at any time from Settings using the Android Storage Access Framework.
 - **Dynamic Multiline Auto-Expansion**: The command bar automatically expands from 1 line up to 3 lines when typing lengthy notes, tasks, or search queries, eliminating horizontal truncation.
 - **Terminal Up/Down Cycling Controls**: Tactile Up and Down controls step through terminal history anytime with live badge tracking (`HIST 1/10`).
-- **Inline Syntax Highlighting**: Only the action trigger or alias (such as `uninstall`, `pin`, `unpin`, `yt`, `pomo`, `assistant`, `todo`, `notes`, `-`, `!`, `#`) lights up in bold theme accent color, while parameters and payload text stay clean, crisp white.
+- **Inline Syntax Highlighting**: Only the action trigger or alias (such as `pinit`, `uninstall`, `pin`, `unpin`, `yt`, `pomo`, `assistant`, `todo`, `notes`, `-`, `!`, `#`) lights up in bold theme accent color, while parameters and payload text stay clean, crisp white.
 - **Interactive Action Suggestions**: Typing `uninstall`, `pin`, or `unpin` displays matching installed apps with dedicated `UNINSTALL`, `PIN`, or `UNPIN` action badges. Tapping any app directly triggers the native action.
 
 ---
 
-### 2. Quick Note & Distraction-Free Sticky Scratchpad
+### 2. Quick Note & Sticky Notification Bar (`pinit`)
 
-Minimal OS provides an instant scratchpad for thoughts, to-dos, or urgent ideas:
-- **Distraction-Free Black Space**: Clean, full-bleed writing canvas designed for frictionless thought capture.
-- **Sticky Notification Bar Pinning**: Notes automatically pin to your phone's notification bar as an ongoing, persistent alert (`QuickNoteManager`), keeping your core focus item visible every time you look at your phone.
+Minimal OS gives you instant, frictionless thought pinning straight from the command line:
+- **Instant `pinit` Command**: Type `pinit <your thought>` (or `qn` / `quicknote`) directly into the command bar to immediately pin persistent focus items to your Android notification shade without opening any sub-menus.
+- **Distraction-Free Black Space**: Dedicated home widget and full-bleed card for quick jotting and review.
+- **Sticky Notification Bar Pinning**: Pinned items remain in your status bar as an ongoing, persistent alert (`QuickNoteManager`), keeping your primary goal visible every time you check your phone.
 - **Boot Persistence**: Restores pinned notes automatically after phone restarts via `QuickNoteActionReceiver` with `goAsync()` execution protection.
 - **One-Tap Clearing & External App Sync**: Includes an inline `CLEAR` notification action and deep-link export to Google Keep, Notes, or your preferred note-taking app.
 
@@ -142,7 +145,7 @@ Minimal OS provides an instant scratchpad for thoughts, to-dos, or urgent ideas:
 ### 3. Unified Notification Hub & Intelligence Archive
 
 Stop hopping between 10 different notification shades and apps. The Hub aggregates notifications into a clean, calm, and intelligent stream:
-- **Category Tabs**: Filter by `ALL`, `MESSAGE`, `CALLS`, and `EMAIL`.
+- **Zero-Swipe Category Filter Icons**: Compact, single-row icons for **All Notifications**, **Messages**, **Calls**, and **Email** alongside the **Live** and **Archive** segmented capsule—fitting 100% on any screen without horizontal scrolling or swiping right.
 - **Now Playing Music Controller**: Displays live track title, artist name, and tactile play/pause/skip controls directly inside the Hub.
 - **Day-Wise SQLite Archive**: Stores alerts locally in a persistent SQLite database, structured by Day of the Week, Date, and Time.
 - **Hub & Settings Saving Toggle**: Complete user control over notification persistence with dedicated `● SAVE: ON` / `● SAVE: OFF` toggles right in the Hub header and in Settings.
@@ -267,7 +270,7 @@ Minimal OS is engineered specifically for Android to feel like an integral part 
 ### Download Latest APK
 Grab the latest verified APK release directly from GitHub:
 
-**[Download Minimal OS Launcher v1.9.9 (Build 30) APK](https://github.com/zaryif/Minimal_os/releases/latest)**
+**[Download Minimal OS Launcher v2.0.2 (Build 33) APK](https://github.com/zaryif/Minimal_os/releases/latest)**
 
 *(Or download specific tag releases from [Releases](https://github.com/zaryif/Minimal_os/releases))*
 
