@@ -123,7 +123,8 @@ fun HomeScreen(
     onNavigateToWidgets: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onOpenMemo: () -> Unit,
-    onOpenClock: () -> Unit
+    onOpenClock: () -> Unit,
+    homeRequestCount: Int = 0
 ) {
     val context = LocalContext.current
     val todos by storageRepository.todos.collectAsState()
@@ -150,6 +151,15 @@ fun HomeScreen(
     var matchingApps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
     var matchingContacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
     var showHelpDialog by remember { mutableStateOf(false) }
+
+    // Home pressed while already on the home screen: clear the command bar and close dialogs.
+    LaunchedEffect(homeRequestCount) {
+        if (homeRequestCount > 0) {
+            query = ""
+            showQuickNoteSheet = false
+            showHelpDialog = false
+        }
+    }
     var hasContactPermission by remember { mutableStateOf(contactRepository.hasPermission()) }
 
     val contactPermissionLauncher = rememberLauncherForActivityResult(

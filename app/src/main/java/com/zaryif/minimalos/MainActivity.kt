@@ -32,6 +32,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -217,16 +218,24 @@ class MainActivity : ComponentActivity() {
                         onAddDeckWidget = { launchDeckWidgetPicker() },
                         onDeleteDeckWidget = { deleteDeckWidget(it) },
                         onAddHomeWidget = { launchHomeWidgetPicker() },
-                        onDeleteHomeWidget = { deleteHomeWidget(it) }
+                        onDeleteHomeWidget = { deleteHomeWidget(it) },
+                        homeRequestCount = homeRequests.intValue
                     )
                 }
             }
         }
     }
 
+    // Bumped each time Android sends us a Home intent while we're already running
+    // (the keyboard's Home key, the home gesture, or the nav-bar Home button).
+    private val homeRequests = mutableIntStateOf(0)
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)) {
+            homeRequests.intValue++
+        }
     }
 
     override fun onStart() {
@@ -252,7 +261,8 @@ fun MinimalAppContent(
     onAddDeckWidget: () -> Unit,
     onDeleteDeckWidget: (Int) -> Unit,
     onAddHomeWidget: () -> Unit,
-    onDeleteHomeWidget: (Int) -> Unit
+    onDeleteHomeWidget: (Int) -> Unit,
+    homeRequestCount: Int = 0
 ) {
     var installedApps by remember { mutableStateOf(appRepository.getInstalledApps()) }
     val favoriteAppPackages by userPreferences.favoriteApps.collectAsState(initial = emptySet())
@@ -301,6 +311,14 @@ fun MinimalAppContent(
     // Mini Apps bottom sheet states
     var showMemoSheet by remember { mutableStateOf(false) }
     var showClockSheet by remember { mutableStateOf(false) }
+
+    LaunchedEffect(homeRequestCount) {
+        if (homeRequestCount > 0 && onboardingCompleted == true) {
+            currentScreen = ScreenState.HOME
+            showMemoSheet = false
+            showClockSheet = false
+        }
+    }
 
     // Android back button handling returns to Home screen (disabled on HOME and during first-time ONBOARDING)
     BackHandler(enabled = activeScreen != ScreenState.HOME && (activeScreen != ScreenState.ONBOARDING || onboardingCompleted == true)) {
@@ -383,7 +401,8 @@ fun MinimalAppContent(
                     onNavigateToWidgets = { currentScreen = ScreenState.WIDGETS },
                     onNavigateToSettings = { currentScreen = ScreenState.SETTINGS },
                     onOpenMemo = { showMemoSheet = true },
-                    onOpenClock = { showClockSheet = true }
+                    onOpenClock = { showClockSheet = true },
+                    homeRequestCount = homeRequestCount
                 )
             }
 
