@@ -56,6 +56,12 @@ import com.zaryif.minimalos.ui.theme.MinimalBlack
 import com.zaryif.minimalos.ui.theme.MinimalOSTheme
 import com.zaryif.minimalos.ui.widgets.WidgetsDeckScreen
 import kotlinx.coroutines.launch
+import com.zaryif.minimalos.util.SystemWallpaperSync
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 
 enum class ScreenState {
     ONBOARDING,
@@ -172,6 +178,18 @@ class MainActivity : ComponentActivity() {
             contactRepository,
             userPreferences
         )
+
+        // Keep Android's home wallpaper matching the launcher's background, so the
+        // stock wallpaper doesn't flash during app-switch animations.
+        lifecycleScope.launch {
+            combine(userPreferences.themeId, userPreferences.customWallpaperUri) { theme, uri -> theme to uri }
+                .distinctUntilChanged()
+                .collectLatest { (theme, uri) ->
+                    withContext(Dispatchers.IO) {
+                        SystemWallpaperSync.syncIfNeeded(this@MainActivity, theme, uri)
+                    }
+                }
+        }
 
         lifecycleScope.launch {
             val note = userPreferences.quickNote.first()
