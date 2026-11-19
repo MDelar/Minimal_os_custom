@@ -5,6 +5,8 @@ import android.content.Intent
 import android.provider.Settings
 import com.zaryif.minimalos.service.MinimalNotificationService
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -219,7 +221,12 @@ private fun StepWelcome(onNext: () -> Unit) {
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Column {
+        // Scrolls on short screens (e.g. Titan 2 Elite's square display) so the button below stays visible
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+        ) {
             Spacer(modifier = Modifier.height(10.dp))
             Image(
                 painter = painterResource(id = R.drawable.app_logo),
@@ -385,7 +392,12 @@ private fun StepCommandBarAnimated(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Column {
+        // Scrolls on short screens (e.g. Titan 2 Elite's square display) so the button below stays visible
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+        ) {
             Text(
                 text = "the command bar",
                 fontSize = 30.sp,
@@ -632,7 +644,12 @@ private fun StepWidgetsDeck(onNext: () -> Unit) {
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Column {
+        // Scrolls on short screens (e.g. Titan 2 Elite's square display) so the button below stays visible
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+        ) {
             Text(
                 text = "cards & deck",
                 fontSize = 30.sp,
@@ -725,7 +742,12 @@ private fun StepNotificationHub(onNext: () -> Unit) {
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Column {
+        // Scrolls on short screens (e.g. Titan 2 Elite's square display) so the button below stays visible
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+        ) {
             Text(
                 text = "notification hub",
                 fontSize = 30.sp,
@@ -929,7 +951,12 @@ private fun StepSetupWizard(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Column {
+        // Scrolls on short screens (e.g. Titan 2 Elite's square display) so the button below stays visible
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+        ) {
             Text(
                 text = "your setup",
                 fontSize = 28.sp,

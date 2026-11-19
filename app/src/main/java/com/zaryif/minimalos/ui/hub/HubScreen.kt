@@ -1,5 +1,7 @@
 package com.zaryif.minimalos.ui.hub
 
+import android.os.Build
+import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
@@ -614,19 +616,7 @@ fun HubScreen(
                             icon = icon,
                             timeDisplay = timeDisplay,
                             isArchive = isArchiveMode,
-                            onItemClick = {
-                                if (item.pendingIntent != null) {
-                                    try {
-                                        item.pendingIntent.send()
-                                    } catch (_: Exception) {
-                                        val launchIntent = context.packageManager.getLaunchIntentForPackage(item.packageName)
-                                        launchIntent?.let { context.startActivity(it) }
-                                    }
-                                } else {
-                                    val launchIntent = context.packageManager.getLaunchIntentForPackage(item.packageName)
-                                    launchIntent?.let { context.startActivity(it) }
-                                }
-                            },
+                            onItemClick = { openNotificationTarget(context, item) },
                             onDismiss = {
                                 if (isArchiveMode) {
                                     historyRepo.deleteNotification(item.key)
@@ -1263,5 +1253,42 @@ private fun formatFullTimestamp(timestamp: Long): String {
     } else {
         val sdf = SimpleDateFormat("MMM d, HH:mm", Locale.getDefault())
         sdf.format(Date(timestamp))
+    }
+}
+
+/**
+ * Opens what a notification points at, as tapping it in the system shade would.
+ *
+ * Since Android 14, an app that fires another app's PendingIntent must opt in to
+ * letting it start an activity; without that, the launch is silently blocked and
+ * send() doesn't throw, so tapping a Hub card did nothing. The launcher is in the
+ * foreground when the card is tapped, so it can grant this.
+ */
+private fun openNotificationTarget(context: Context, item: NotificationItem) {
+    val pendingIntent = item.pendingIntent
+    if (pendingIntent != null) {
+        try {
+            val options = ActivityOptions.makeBasic()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+                options.setPendingIntentBackgroundActivityStartMode(
+                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOW_IF_VISIBLE
+                )
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                @Suppress("DEPRECATION")
+                options.setPendingIntentBackgroundActivityStartMode(
+                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                )
+            }
+            pendingIntent.send(context, 0, null, null, null, null, options.toBundle())
+            return
+        } catch (_: Exception) {
+            // Cancelled or otherwise unusable: fall back to opening the app.
+        }
+    }
+    context.packageManager.getLaunchIntentForPackage(item.packageName)?.let { launch ->
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            context.startActivity(launch)
+        } catch (_: Exception) {}
     }
 }
