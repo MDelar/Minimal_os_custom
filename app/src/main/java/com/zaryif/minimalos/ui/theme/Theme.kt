@@ -1,6 +1,7 @@
 package com.zaryif.minimalos.ui.theme
 
 import android.app.Activity
+import android.graphics.drawable.ColorDrawable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -21,6 +22,9 @@ fun MinimalOSTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            // Match the window background to the theme so app-switch animations
+            // don't show a black frame behind non-black themes.
+            window.setBackgroundDrawable(ColorDrawable(currentActiveTheme.background.toArgb()))
             window.statusBarColor = currentActiveTheme.background.toArgb()
             window.navigationBarColor = currentActiveTheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).apply {
