@@ -54,6 +54,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
@@ -122,6 +127,8 @@ fun CommandBar(
     showTerminalBufferIcon: Boolean = true,
     fieldFocusRequester: FocusRequester? = null,
     onFieldFocusChanged: (Boolean) -> Unit = {},
+    canFieldFocus: () -> Boolean = { true },
+    onFieldTouched: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -606,6 +613,16 @@ fun CommandBar(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            // Let the caller decide when the field may take focus, so Android
+                            // can't hand focus back to it when the launcher returns. A touch
+                            // on the field allows it before the tap is handled.
+                            .pointerInput(Unit) {
+                                awaitEachGesture {
+                                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                                    onFieldTouched()
+                                }
+                            }
+                            .focusProperties { canFocus = canFieldFocus() }
                             .focusRequester(focusRequester)
                             .onFocusChanged { onFieldFocusChanged(it.isFocused) }
                             .onPreviewKeyEvent { keyEvent ->

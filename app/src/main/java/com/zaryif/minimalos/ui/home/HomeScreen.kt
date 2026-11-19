@@ -170,8 +170,12 @@ fun HomeScreen(
     val homeFocusRequester = remember { FocusRequester() }
     val commandFocusRequester = remember { FocusRequester() }
     var commandFieldFocused by remember { mutableStateOf(false) }
+    // The command bar may only take focus after a tap or a typed key. Without this,
+    // Android restores focus to it when the launcher's window regains focus.
+    var commandFocusAllowed by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
     fun parkFocusOnHome() {
+        commandFocusAllowed = false
         keyboardController?.hide()
         try { homeFocusRequester.requestFocus() } catch (_: Exception) {}
     }
@@ -370,6 +374,7 @@ fun HomeScreen(
                 val ch = native.unicodeChar
                 if (ch == 0 || Character.isISOControl(ch) || Character.isWhitespace(ch)) return@onPreviewKeyEvent false
                 query += String(Character.toChars(ch))
+                commandFocusAllowed = true
                 try { commandFocusRequester.requestFocus() } catch (_: Exception) {}
                 true
             }
@@ -877,7 +882,9 @@ fun HomeScreen(
                     showHelperIcon = showCommandHelperIcon,
                     showTerminalBufferIcon = showTerminalBufferIcon,
                     fieldFocusRequester = commandFocusRequester,
-                    onFieldFocusChanged = { commandFieldFocused = it }
+                    onFieldFocusChanged = { commandFieldFocused = it },
+                    canFieldFocus = { commandFocusAllowed },
+                    onFieldTouched = { commandFocusAllowed = true }
                 )
             }
         }
