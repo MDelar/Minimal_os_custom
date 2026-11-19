@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -119,10 +120,13 @@ fun CommandBar(
     onHelpRequested: (() -> Unit)? = null,
     showHelperIcon: Boolean = true,
     showTerminalBufferIcon: Boolean = true,
+    fieldFocusRequester: FocusRequester? = null,
+    onFieldFocusChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
-    val focusRequester = remember { FocusRequester() }
+    val ownFocusRequester = remember { FocusRequester() }
+    val focusRequester = fieldFocusRequester ?: ownFocusRequester
     val command = CommandParser.parse(query)
     val hasPrefix = query.isNotBlank() && CommandType.fromSymbol(query.trim().first()) != null
     val isCallingOrMessaging = command.type == CommandType.CALL ||
@@ -603,6 +607,7 @@ fun CommandBar(
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester)
+                            .onFocusChanged { onFieldFocusChanged(it.isFocused) }
                             .onPreviewKeyEvent { keyEvent ->
                                 if (isHistoryEnabled && keyEvent.type == KeyEventType.KeyDown) {
                                     when (keyEvent.key) {

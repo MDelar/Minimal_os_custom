@@ -68,6 +68,17 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.focus.focusTarget
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -152,12 +163,38 @@ fun HomeScreen(
     var matchingContacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
     var showHelpDialog by remember { mutableStateOf(false) }
 
+    // Focus handling for a physical keyboard. The command bar used to keep focus
+    // after launching an app, so coming home showed it selected. Now the home
+    // screen itself holds focus when you arrive, and typing any character jumps
+    // into the command bar with that character ("type anywhere").
+    val homeFocusRequester = remember { FocusRequester() }
+    val commandFocusRequester = remember { FocusRequester() }
+    var commandFieldFocused by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    fun parkFocusOnHome() {
+        keyboardController?.hide()
+        try { homeFocusRequester.requestFocus() } catch (_: Exception) {}
+    }
+
+    LaunchedEffect(Unit) { parkFocusOnHome() }
+
+    // Coming back to the launcher from another app.
+    val homeLifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(homeLifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) parkFocusOnHome()
+        }
+        homeLifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { homeLifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     // Home pressed while already on the home screen: clear the command bar and close dialogs.
     LaunchedEffect(homeRequestCount) {
         if (homeRequestCount > 0) {
             query = ""
             showQuickNoteSheet = false
             showHelpDialog = false
+            parkFocusOnHome()
         }
     }
     var hasContactPermission by remember { mutableStateOf(contactRepository.hasPermission()) }
@@ -326,6 +363,18 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MinimalBlack)
+            .onPreviewKeyEvent { event ->
+                if (commandFieldFocused || event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                val native = event.nativeKeyEvent
+                if (native.isCtrlPressed || native.isMetaPressed) return@onPreviewKeyEvent false
+                val ch = native.unicodeChar
+                if (ch == 0 || Character.isISOControl(ch) || Character.isWhitespace(ch)) return@onPreviewKeyEvent false
+                query += String(Character.toChars(ch))
+                try { commandFocusRequester.requestFocus() } catch (_: Exception) {}
+                true
+            }
+            .focusRequester(homeFocusRequester)
+            .focusTarget()
     ) {
         // Custom or Preset Wallpaper background
         if (!wallpaperUriString.isNullOrBlank()) {
@@ -826,7 +875,9 @@ fun HomeScreen(
                     },
                     onHelpRequested = { showHelpDialog = true },
                     showHelperIcon = showCommandHelperIcon,
-                    showTerminalBufferIcon = showTerminalBufferIcon
+                    showTerminalBufferIcon = showTerminalBufferIcon,
+                    fieldFocusRequester = commandFocusRequester,
+                    onFieldFocusChanged = { commandFieldFocused = it }
                 )
             }
         }
