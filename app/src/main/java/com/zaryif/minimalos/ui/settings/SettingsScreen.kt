@@ -2312,9 +2312,15 @@ fun SettingsScreen(
         // APP WALKTHROUGH & ONBOARDING FULLSCREEN MODAL
         // =========================================================
         if (showOnboardingModal) {
+            // Full-screen: the walkthrough pads itself for the status and navigation
+            // bars. With the default (fit inside the system bars) the dialog sat too
+            // low on the Titan 2 Elite and its bottom button was off screen.
             Dialog(
                 onDismissRequest = { showOnboardingModal = false },
-                properties = DialogProperties(usePlatformDefaultWidth = false)
+                properties = DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false
+                )
             ) {
                 Box(
                     modifier = Modifier
