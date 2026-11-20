@@ -143,6 +143,7 @@ fun HomeScreen(
     val wallpaperUriString by userPreferences.customWallpaperUri.collectAsState(initial = null)
     val favoriteAppPackages by userPreferences.favoriteApps.collectAsState(initial = emptySet())
     val homeHeaderText by userPreferences.homeHeaderText.collectAsState(initial = UserPreferences.DEFAULT_HOME_HEADER)
+    val unlockAnimation by userPreferences.unlockAnimation.collectAsState(initial = true)
     val homeWidgetsOrder by userPreferences.homeWidgets.collectAsState(initial = UserPreferences.DEFAULT_HOME_WIDGETS)
     val homeSystemWidgets by userPreferences.homeSystemWidgets.collectAsState(initial = emptySet())
     val showAllTodosPref by userPreferences.homeShowAllTodos.collectAsState(initial = false)
@@ -929,6 +930,12 @@ fun HomeScreen(
                 onDismiss = { showQuickNoteSheet = false }
             )
         }
+
+        // Terminal boot-up after unlocking (Settings › Appearance › Unlock Animation)
+        com.zaryif.minimalos.ui.components.UnlockIntroOverlay(
+            headerText = homeHeaderText,
+            enabled = unlockAnimation
+        )
     }
 }
 
