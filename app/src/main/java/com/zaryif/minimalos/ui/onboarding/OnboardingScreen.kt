@@ -307,11 +307,11 @@ private fun StepCommandBarAnimated(
     val demoList = remember {
         listOf(
             DemoCommand(
-                triggerText = "@Zaryif On my way",
+                triggerText = "@Sam On my way",
                 symbol = "@",
-                pillLabel = "@Zaryif",
+                pillLabel = "@Sam",
                 categoryBadge = "@ MESSAGE / SMS",
-                resultTitle = "Message to Zaryif",
+                resultTitle = "Message to Sam",
                 resultSubtitle = "\"On my way\"",
                 icon = Icons.AutoMirrored.Filled.Chat
             ),
@@ -343,11 +343,11 @@ private fun StepCommandBarAnimated(
                 icon = Icons.Default.CalendarToday
             ),
             DemoCommand(
-                triggerText = "#Zaryif",
+                triggerText = "#Sam",
                 symbol = "#",
                 pillLabel = "# Call",
                 categoryBadge = "# DIRECT CALL",
-                resultTitle = "Calling Zaryif",
+                resultTitle = "Calling Sam",
                 resultSubtitle = "Connecting via phone dialer...",
                 icon = Icons.Default.Phone
             )
@@ -789,7 +789,7 @@ private fun StepNotificationHub(onNext: () -> Unit) {
 
             // Sample notification cards
             NotificationSampleRow(
-                sender = "Zaryif",
+                sender = "Sam",
                 preview = "On my way now",
                 time = "2m",
                 icon = Icons.AutoMirrored.Filled.Chat
@@ -805,7 +805,7 @@ private fun StepNotificationHub(onNext: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
 
             NotificationSampleRow(
-                sender = "Zaryif",
+                sender = "Sam",
                 preview = "Missed call",
                 time = "30m",
                 icon = Icons.Default.Phone

@@ -1498,7 +1498,7 @@ fun SettingsScreen(
             // =========================================================
             // CATEGORY 6: ABOUT & SYSTEM INFO
             // =========================================================
-            val aboutKeywords = listOf("about", "version", "release", "developer", "author", "zarif", "coffee", "support", "onboarding", "guide", "docs", "license")
+            val aboutKeywords = listOf("about", "version", "release", "developer", "author", "delar", "mohammed", "zarif", "original", "credit", "source", "onboarding", "guide", "docs", "license")
             if (q.isEmpty() || aboutKeywords.any { it.contains(q) || q.contains(it) }) {
                 SettingsSectionHeader(title = AppStrings.settingsSecAbout)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1559,14 +1559,14 @@ fun SettingsScreen(
                             )
                         },
                         onClick = {
-                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zaryif"))
+                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/MDelar"))
                             context.startActivity(browserIntent)
                         }
                     )
 
                     SettingsInsetDivider()
 
-                    // 3. Support & Fund Project (Buy Me a Coffee)
+                    // 3. Credit to the original project this fork is based on
                     SettingsItemRow(
                         icon = Icons.Default.Favorite,
                         title = AppStrings.settingsSupportTitle,
@@ -1578,11 +1578,11 @@ fun SettingsScreen(
                                     .background(MinimalRed)
                                     .padding(horizontal = 7.dp, vertical = 3.dp)
                             ) {
-                                Text(text = "SUPPORT", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MinimalOnAccent)
+                                Text(text = "CREDIT", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MinimalOnAccent)
                             }
                         },
                         onClick = {
-                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://buymeacoffee.com/zaryif"))
+                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zaryif/Minimal_os"))
                             context.startActivity(browserIntent)
                         }
                     )
@@ -1650,28 +1650,7 @@ fun SettingsScreen(
                             )
                         },
                         onClick = {
-                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zaryif/Minimal_os/releases"))
-                            context.startActivity(browserIntent)
-                        }
-                    )
-
-                    SettingsInsetDivider()
-
-                    // 6. Architecture & Documentation
-                    SettingsItemRow(
-                        icon = Icons.Default.Description,
-                        title = "Architecture & Documentation",
-                        subtitle = "BRD, SRS, SAD, MIS & Master Plan on GitHub",
-                        trailingContent = {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = null,
-                                tint = MinimalGray,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
-                        onClick = {
-                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zaryif/Minimal_os#readme"))
+                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/MDelar/Minimal_os_custom"))
                             context.startActivity(browserIntent)
                         }
                     )
@@ -1682,7 +1661,7 @@ fun SettingsScreen(
                     SettingsItemRow(
                         icon = Icons.Default.Check,
                         title = "Open Source License",
-                        subtitle = "MIT License · 100% Free, Private & Open Forever",
+                        subtitle = "MIT License · Free & open source",
                         trailingContent = {
                             Box(
                                 modifier = Modifier
@@ -1695,7 +1674,7 @@ fun SettingsScreen(
                             }
                         },
                         onClick = {
-                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zaryif/Minimal_os/blob/main/LICENSE"))
+                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/MDelar/Minimal_os_custom/blob/main/LICENSE"))
                             context.startActivity(browserIntent)
                         }
                     )
@@ -2109,7 +2088,7 @@ fun SettingsScreen(
                                 .background(MinimalDarkCardBg)
                                 .border(0.5.dp, MinimalDarkGray, RoundedCornerShape(10.dp))
                                 .clickable {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zaryif"))
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/MDelar"))
                                     context.startActivity(intent)
                                 }
                                 .padding(12.dp),
@@ -2134,13 +2113,13 @@ fun SettingsScreen(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "MD. Zarif Azfar",
+                                    text = "Mohammed Delar",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MinimalWhite
                                 )
                                 Text(
-                                    text = "Creator & Maintainer · @zaryif · Dhaka, BD",
+                                    text = "Developer · @MDelar · Based on Minimal OS by @zaryif",
                                     fontSize = 10.sp,
                                     color = MinimalGray
                                 )
@@ -2225,21 +2204,21 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Fund Project (Buy Me a Coffee)
+                        // Original project
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(MinimalRed)
                                 .clickable {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://buymeacoffee.com/zaryif"))
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zaryif/Minimal_os"))
                                     context.startActivity(intent)
                                 }
                                 .padding(vertical = 11.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "FUND THE PROJECT (BUY ME A COFFEE)",
+                                text = "ORIGINAL MINIMAL OS PROJECT",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MinimalOnAccent
@@ -2256,7 +2235,7 @@ fun SettingsScreen(
                                 .background(MinimalDarkCardBg)
                                 .border(1.dp, MinimalDarkGray, RoundedCornerShape(10.dp))
                                 .clickable {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zaryif/Minimal_os"))
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/MDelar/Minimal_os_custom"))
                                     context.startActivity(intent)
                                 }
                                 .padding(vertical = 11.dp),
