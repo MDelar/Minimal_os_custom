@@ -28,6 +28,53 @@ data class AgendaEvent(
  */
 object CalendarAgenda {
 
+    /**
+     * Plain-text report of every calendar the phone shares with other apps, for
+     * working out why an event doesn't show: account, name, whether it's visible
+     * and synced, and how many event instances it has in the next [days] days.
+     */
+    fun diagnose(context: Context, days: Int = 7, now: Long = System.currentTimeMillis()): String {
+        if (!hasPermission(context)) return "No calendar permission."
+        val lines = mutableListOf<String>()
+        val counts = mutableMapOf<Long, Int>()
+        try {
+            val uri = CalendarContract.Instances.CONTENT_URI.buildUpon().also {
+                ContentUris.appendId(it, now - 24 * 60 * 60 * 1000L)
+                ContentUris.appendId(it, now + days * 24 * 60 * 60 * 1000L)
+            }.build()
+            context.contentResolver.query(uri, arrayOf(CalendarContract.Instances.CALENDAR_ID), null, null, null)?.use { c ->
+                lines += "Instances in range: ${c.count}"
+                while (c.moveToNext()) counts[c.getLong(0)] = (counts[c.getLong(0)] ?: 0) + 1
+            } ?: lines.add("Instances query returned no cursor")
+        } catch (e: Exception) {
+            lines += "Instances query failed: ${e.javaClass.simpleName}: ${e.message}"
+        }
+        try {
+            context.contentResolver.query(
+                CalendarContract.Calendars.CONTENT_URI,
+                arrayOf(
+                    CalendarContract.Calendars._ID,
+                    CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+                    CalendarContract.Calendars.ACCOUNT_NAME,
+                    CalendarContract.Calendars.ACCOUNT_TYPE,
+                    CalendarContract.Calendars.VISIBLE,
+                    CalendarContract.Calendars.SYNC_EVENTS
+                ),
+                null, null, null
+            )?.use { c ->
+                lines += "Calendars: ${c.count}"
+                while (c.moveToNext()) {
+                    val id = c.getLong(0)
+                    lines += "• ${c.getString(1)}\n   ${c.getString(2)} (${c.getString(3)})\n" +
+                        "   visible=${c.getInt(4)} sync=${c.getInt(5)} events=${counts[id] ?: 0}"
+                }
+            }
+        } catch (e: Exception) {
+            lines += "Calendars query failed: ${e.javaClass.simpleName}: ${e.message}"
+        }
+        return lines.joinToString("\n")
+    }
+
     fun hasPermission(context: Context): Boolean =
         context.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
 
