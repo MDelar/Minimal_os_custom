@@ -68,6 +68,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material.icons.filled.Widgets
@@ -140,6 +141,7 @@ fun SettingsScreen(
     // Preferences collection
     val assistantPackage by userPreferences.assistantPackage.collectAsState(initial = null)
     val showCommandFeedback by userPreferences.showCommandFeedback.collectAsState(initial = false)
+    val unlockAnimationPref by userPreferences.unlockAnimation.collectAsState(initial = true)
     val showTerminalBufferIcon by userPreferences.showTerminalBufferIcon.collectAsState(initial = true)
     val showCommandHelperIcon by userPreferences.showCommandHelperIcon.collectAsState(initial = true)
     val customWallpaperUri by userPreferences.customWallpaperUri.collectAsState(initial = null)
@@ -514,6 +516,27 @@ fun SettingsScreen(
                             )
                         },
                         onClick = { showHeaderDialog = true }
+                    )
+
+                    SettingsInsetDivider()
+
+                    // Item 1c: terminal boot-up when unlocking onto home
+                    SettingsItemRow(
+                        icon = Icons.Default.LockOpen,
+                        title = "Unlock Animation",
+                        subtitle = if (unlockAnimationPref) "Types your header in when you unlock" else "Off",
+                        trailingContent = {
+                            Switch(
+                                checked = unlockAnimationPref,
+                                onCheckedChange = { scope.launch { userPreferences.setUnlockAnimation(it) } },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MinimalWhite,
+                                    checkedTrackColor = MinimalRed,
+                                    uncheckedThumbColor = MinimalGray,
+                                    uncheckedTrackColor = MinimalDarkCardBg
+                                )
+                            )
+                        }
                     )
 
                     SettingsInsetDivider()

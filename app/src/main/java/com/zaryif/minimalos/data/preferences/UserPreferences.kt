@@ -31,6 +31,7 @@ class UserPreferences(private val context: Context) {
         private val AI_PROVIDER = stringPreferencesKey("ai_provider")
         private val CUSTOM_WALLPAPER_URI = stringPreferencesKey("custom_wallpaper_uri")
         private val HOME_HEADER_TEXT = stringPreferencesKey("home_header_text")
+        private val UNLOCK_ANIMATION = booleanPreferencesKey("unlock_animation")
         private val FAVORITE_APPS = stringSetPreferencesKey("favorite_apps")
         private val DECK_SYSTEM_WIDGETS = stringSetPreferencesKey("system_widgets")
         private val HOME_SYSTEM_WIDGETS = stringSetPreferencesKey("home_system_widgets")
@@ -312,6 +313,14 @@ class UserPreferences(private val context: Context) {
         .map { prefs -> prefs[QUICK_NOTE] ?: "" }
 
     /** Empty means the corner is left blank. */
+    /** Terminal boot-up when you unlock onto the home screen. On by default. */
+    val unlockAnimation: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[UNLOCK_ANIMATION] ?: true }
+
+    suspend fun setUnlockAnimation(enabled: Boolean) {
+        context.dataStore.edit { prefs -> prefs[UNLOCK_ANIMATION] = enabled }
+    }
+
     val homeHeaderText: Flow<String> = context.dataStore.data
         .map { prefs -> prefs[HOME_HEADER_TEXT] ?: DEFAULT_HOME_HEADER }
 
