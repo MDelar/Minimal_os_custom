@@ -67,9 +67,9 @@ private enum class IntroPhase { Idle, Armed, Playing }
 
 /**
  * Terminal boot-up shown when you unlock the phone onto the home screen: your
- * header types itself out with an "unlock" command, two log lines print, then
- * a scan line in the theme's accent wipes down to reveal home. About 0.9s; tap
- * to skip.
+ * header types itself out with an "unlock" command, a greeting prints, then
+ * a scan line in the theme's accent wipes down to reveal home. About 0.45s;
+ * tap to skip.
  *
  * Android doesn't let launchers change the lock screen, so this covers home as
  * the screen turns off (only if home was what you were looking at) and plays
@@ -88,27 +88,33 @@ fun UnlockIntroOverlay(headerText: String, enabled: Boolean) {
         val keyguard = context.getSystemService(KeyguardManager::class.java)
         val lifecycle = lifecycleOwner.lifecycle
         var lastStoppedAt = 0L
-        var userPresentAt = 0L
         var waitForUnlock: Job? = null
 
         fun play() {
             waitForUnlock?.cancel()
+            if (phase != IntroPhase.Armed) return
             phase = IntroPhase.Playing
             playId++
         }
 
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_STOP -> lastStoppedAt = SystemClock.elapsedRealtime()
-                Lifecycle.Event.ON_RESUME -> if (phase == IntroPhase.Armed && keyguard?.isKeyguardLocked != true) {
-                    if (SystemClock.elapsedRealtime() - userPresentAt < 3000) play()
-                    else {
-                        // Home can come back a moment before the unlock broadcast; give it a second.
-                        waitForUnlock?.cancel()
-                        waitForUnlock = scope.launch {
-                            delay(1200)
-                            if (phase == IntroPhase.Armed) phase = IntroPhase.Idle
+                Lifecycle.Event.ON_STOP -> {
+                    lastStoppedAt = SystemClock.elapsedRealtime()
+                    waitForUnlock?.cancel()
+                }
+                // Home is back on screen. Play as soon as the lock screen has gone: check
+                // briefly rather than waiting on the unlock broadcast, whose timing varies
+                // by phone. Gives up after a few seconds so home is never left covered.
+                Lifecycle.Event.ON_RESUME -> if (phase == IntroPhase.Armed) {
+                    waitForUnlock?.cancel()
+                    waitForUnlock = scope.launch {
+                        val giveUpAt = SystemClock.elapsedRealtime() + 4000
+                        while (phase == IntroPhase.Armed && SystemClock.elapsedRealtime() < giveUpAt) {
+                            if (keyguard?.isKeyguardLocked != true) { play(); return@launch }
+                            delay(30)
                         }
+                        if (phase == IntroPhase.Armed) phase = IntroPhase.Idle
                     }
                 }
                 else -> {}
@@ -125,10 +131,8 @@ fun UnlockIntroOverlay(headerText: String, enabled: Boolean) {
                             phase = IntroPhase.Armed
                         }
                     }
-                    Intent.ACTION_USER_PRESENT -> {
-                        userPresentAt = SystemClock.elapsedRealtime()
-                        if (phase == IntroPhase.Armed && lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) play()
-                    }
+                    Intent.ACTION_USER_PRESENT ->
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) play()
                 }
             }
         }
@@ -154,22 +158,18 @@ fun UnlockIntroOverlay(headerText: String, enabled: Boolean) {
     val prompt = headerText.trim().ifEmpty { "~$" }
     val command = "unlock"
     val fullLength = prompt.length + 1 + command.length
-    var typed by remember(playId) { mutableIntStateOf(0) }
+    val typing = remember(playId) { Animatable(0f) }
+    val typed = (typing.value * fullLength).toInt()
     var logLines by remember(playId) { mutableIntStateOf(0) }
     val reveal = remember(playId) { Animatable(0f) }
 
     if (phase == IntroPhase.Playing) {
+        // About 0.45s in all: type 160ms, greet, wipe 220ms.
         LaunchedEffect(playId) {
-            for (i in 1..fullLength) {
-                typed = i
-                delay(if (i <= prompt.length) 11L else 22L) // prompt flies in, the command is "typed"
-            }
-            delay(70)
+            typing.animateTo(1f, tween(160, easing = LinearEasing))
             logLines = 1
-            delay(80)
-            logLines = 2
-            delay(110)
-            reveal.animateTo(1f, tween(360, easing = FastOutSlowInEasing))
+            delay(70)
+            reveal.animateTo(1f, tween(220, easing = FastOutSlowInEasing))
             phase = IntroPhase.Idle
         }
     }
@@ -232,8 +232,7 @@ fun UnlockIntroOverlay(headerText: String, enabled: Boolean) {
                 maxLines = 1
             )
             Spacer(modifier = Modifier.height(6.dp))
-            if (logLines >= 1) LogLine("identity verified", accent)
-            if (logLines >= 2) LogLine(greeting(prompt), accent)
+            if (logLines >= 1) LogLine(greeting(prompt), accent)
         }
     }
 }
