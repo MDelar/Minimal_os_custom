@@ -99,6 +99,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.window.DialogProperties
 import com.zaryif.minimalos.ui.components.CommandHelpDialog
 import com.zaryif.minimalos.ui.onboarding.OnboardingScreen
@@ -141,6 +143,8 @@ fun SettingsScreen(
     val showTerminalBufferIcon by userPreferences.showTerminalBufferIcon.collectAsState(initial = true)
     val showCommandHelperIcon by userPreferences.showCommandHelperIcon.collectAsState(initial = true)
     val customWallpaperUri by userPreferences.customWallpaperUri.collectAsState(initial = null)
+    val homeHeaderText by userPreferences.homeHeaderText.collectAsState(initial = UserPreferences.DEFAULT_HOME_HEADER)
+    var showHeaderDialog by remember { mutableStateOf(false) }
     val favoriteAppPackages by userPreferences.favoriteApps.collectAsState(initial = emptySet())
     val currentThemeId by userPreferences.themeId.collectAsState(initial = "AMOLED_RED")
     val homeWidgets by userPreferences.homeWidgets.collectAsState(initial = UserPreferences.DEFAULT_HOME_WIDGETS)
@@ -395,7 +399,7 @@ fun SettingsScreen(
             // =========================================================
             // CATEGORY 1: PERSONALIZATION & APPEARANCE
             // =========================================================
-            val appearanceKeywords = listOf("appearance", "theme", "themes", "color", "accent", "wallpaper", "personalization")
+            val appearanceKeywords = listOf("appearance", "theme", "themes", "color", "accent", "wallpaper", "personalization", "header", "prompt", "name")
             if (q.isEmpty() || appearanceKeywords.any { it.contains(q) || q.contains(it) }) {
                 SettingsSectionHeader(title = AppStrings.settingsSecAppearance)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -494,6 +498,24 @@ fun SettingsScreen(
                             }
                         }
                     }
+
+                    SettingsInsetDivider()
+
+                    // Item 1b: Home header text (top-left corner of home)
+                    SettingsItemRow(
+                        icon = Icons.Default.Terminal,
+                        title = "Home Header",
+                        subtitle = homeHeaderText.ifEmpty { "hidden" },
+                        trailingContent = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MinimalGray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        onClick = { showHeaderDialog = true }
+                    )
 
                     SettingsInsetDivider()
 
@@ -1999,6 +2021,17 @@ fun SettingsScreen(
         // =========================================================
         // ABOUT MINIMAL OS & SYSTEM ARCHITECTURE MODAL
         // =========================================================
+        if (showHeaderDialog) {
+            HomeHeaderDialog(
+                initial = homeHeaderText,
+                onDismiss = { showHeaderDialog = false },
+                onSave = { text ->
+                    scope.launch { userPreferences.setHomeHeaderText(text) }
+                    showHeaderDialog = false
+                }
+            )
+        }
+
         if (showAboutModal) {
             Dialog(onDismissRequest = { showAboutModal = false }) {
                 Box(
@@ -2431,3 +2464,82 @@ private fun SettingsInsetDivider() {
         modifier = Modifier.padding(start = 58.dp)
     )
 }
+
+@Composable
+private fun HomeHeaderDialog(initial: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    var text by remember { mutableStateOf(initial) }
+    val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    LaunchedEffect(Unit) { try { focusRequester.requestFocus() } catch (_: Exception) {} }
+    val suggestions = listOf(UserPreferences.DEFAULT_HOME_HEADER, "mdelar", "~ $", "minimal")
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MinimalCardBg)
+                .border(1.dp, MinimalDarkGray, RoundedCornerShape(14.dp))
+                .padding(16.dp)
+        ) {
+            Text(text = "home header", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MinimalWhite)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Shown in the top-left corner of home. Leave empty to hide it.",
+                fontSize = 11.sp, color = MinimalGray
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            BasicTextField(
+                value = text,
+                onValueChange = { text = it.replace("\n", " ").take(UserPreferences.HOME_HEADER_MAX_LENGTH) },
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = MinimalWhite, fontSize = 15.sp,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                ),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(MinimalRed),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                ),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { onSave(text.trim()) }),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .clip(RoundedCornerShape(8.dp))
+                    .border(1.dp, MinimalDarkGray, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                suggestions.forEach { suggestion ->
+                    Text(
+                        text = suggestion,
+                        fontSize = 10.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        color = if (text == suggestion) MinimalRed else MinimalGray,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .border(1.dp, MinimalDarkGray, RoundedCornerShape(6.dp))
+                            .clickable { text = suggestion }
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Text(
+                    text = "CANCEL",
+                    fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MinimalGray,
+                    modifier = Modifier.clickable { onDismiss() }.padding(8.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "SAVE",
+                    fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MinimalRed,
+                    modifier = Modifier.clickable { onSave(text.trim()) }.padding(8.dp)
+                )
+            }
+        }
+    }
+}
+

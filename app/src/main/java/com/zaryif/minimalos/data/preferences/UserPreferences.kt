@@ -30,6 +30,7 @@ class UserPreferences(private val context: Context) {
         private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         private val AI_PROVIDER = stringPreferencesKey("ai_provider")
         private val CUSTOM_WALLPAPER_URI = stringPreferencesKey("custom_wallpaper_uri")
+        private val HOME_HEADER_TEXT = stringPreferencesKey("home_header_text")
         private val FAVORITE_APPS = stringSetPreferencesKey("favorite_apps")
         private val DECK_SYSTEM_WIDGETS = stringSetPreferencesKey("system_widgets")
         private val HOME_SYSTEM_WIDGETS = stringSetPreferencesKey("home_system_widgets")
@@ -50,6 +51,10 @@ class UserPreferences(private val context: Context) {
         private val QUICK_NOTE = stringPreferencesKey("quick_note")
         private val QUICK_NOTE_PINNED = booleanPreferencesKey("quick_note_pinned")
         private val NOTIFICATION_HISTORY_ENABLED = booleanPreferencesKey("notification_history_enabled")
+
+        /** Text in the home screen's top-left corner. Editable in Settings › Appearance. */
+        const val DEFAULT_HOME_HEADER = "mdelar@titan:~$"
+        const val HOME_HEADER_MAX_LENGTH = 32
 
         val DEFAULT_HOME_WIDGETS = listOf("ALARM_COUNTDOWN", "TODOS", "SHORTCUTS")
         val DEFAULT_DECK_WIDGETS = listOf("NOTES", "TODOS", "CALENDAR", "POMODORO", "ALARMS", "ALIASES", "TIMERS", "SYSTEM_WIDGETS")
@@ -305,6 +310,16 @@ class UserPreferences(private val context: Context) {
 
     val quickNote: Flow<String> = context.dataStore.data
         .map { prefs -> prefs[QUICK_NOTE] ?: "" }
+
+    /** Empty means the corner is left blank. */
+    val homeHeaderText: Flow<String> = context.dataStore.data
+        .map { prefs -> prefs[HOME_HEADER_TEXT] ?: DEFAULT_HOME_HEADER }
+
+    suspend fun setHomeHeaderText(text: String) {
+        context.dataStore.edit { prefs ->
+            prefs[HOME_HEADER_TEXT] = text.replace("\n", " ").take(HOME_HEADER_MAX_LENGTH)
+        }
+    }
 
     val quickNotePinned: Flow<Boolean> = context.dataStore.data
         .map { prefs -> prefs[QUICK_NOTE_PINNED] ?: true }
