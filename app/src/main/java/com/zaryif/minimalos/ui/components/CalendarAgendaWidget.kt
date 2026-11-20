@@ -7,6 +7,12 @@ import android.provider.CalendarContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +68,7 @@ import java.time.ZoneId
  * calendar app. Reads the phone's calendar storage locally; refreshes while
  * the launcher is on screen.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MinimalHomeCalendarWidget(
     onOpenCalendar: () -> Unit,
@@ -75,6 +82,7 @@ fun MinimalHomeCalendarWidget(
     var readError by remember { mutableStateOf<String?>(null) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var loaded by remember { mutableStateOf(false) }
+    var diagnostics by remember { mutableStateOf<String?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         hasPermission = granted
@@ -112,10 +120,14 @@ fun MinimalHomeCalendarWidget(
             .clip(RoundedCornerShape(12.dp))
             .background(MinimalCardBg)
             .border(1.dp, MinimalDarkGray, RoundedCornerShape(12.dp))
-            .clickable {
-                if (hasPermission) onOpenCalendar()
-                else permissionLauncher.launch(Manifest.permission.READ_CALENDAR)
-            }
+            .combinedClickable(
+                onClick = {
+                    if (hasPermission) onOpenCalendar()
+                    else permissionLauncher.launch(Manifest.permission.READ_CALENDAR)
+                },
+                // Long-press: show what the phone's calendar storage contains, for troubleshooting.
+                onLongClick = { diagnostics = CalendarAgenda.diagnose(context) }
+            )
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         Column {
@@ -189,4 +201,36 @@ fun MinimalHomeCalendarWidget(
             }
         }
     }
+
+    diagnostics?.let { report ->
+        Dialog(onDismissRequest = { diagnostics = null }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MinimalCardBg)
+                    .border(1.dp, MinimalDarkGray, RoundedCornerShape(14.dp))
+                    .padding(16.dp)
+            ) {
+                Text(text = "calendar diagnostics", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MinimalWhite)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = report,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = MinimalGray,
+                    modifier = Modifier
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState())
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "CLOSE",
+                    fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MinimalRed,
+                    modifier = Modifier.align(Alignment.End).clickable { diagnostics = null }.padding(8.dp)
+                )
+            }
+        }
+    }
 }
+
