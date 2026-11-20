@@ -31,13 +31,31 @@ object CalendarAgenda {
     fun hasPermission(context: Context): Boolean =
         context.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
 
+    /** What a calendar read found, so the card can say why it's empty. */
+    data class Result(
+        val events: List<AgendaEvent>,
+        /** Calendars on the phone; 0 means calendar sync isn't set up for any account. */
+        val calendarCount: Int,
+        val error: String? = null
+    )
+
     /**
      * The next [limit] events that haven't finished yet, within [days] days, from
-     * calendars shown in the calendar app. Ongoing events are included. Returns
-     * null without calendar permission.
+     * every calendar on the phone. Ongoing events are included. Returns null
+     * without calendar permission.
+     *
+     * Filtering is done here rather than in the query: some phones don't set the
+     * calendars' VISIBLE flag for synced accounts, which hid every event.
      */
-    fun upcoming(context: Context, limit: Int = 3, days: Int = 7, now: Long = System.currentTimeMillis()): List<AgendaEvent>? {
+    fun upcoming(context: Context, limit: Int = 3, days: Int = 7, now: Long = System.currentTimeMillis()): Result? {
         if (!hasPermission(context)) return null
+        val calendarCount = try {
+            context.contentResolver.query(
+                CalendarContract.Calendars.CONTENT_URI, arrayOf(CalendarContract.Calendars._ID), null, null, null
+            )?.use { it.count } ?: 0
+        } catch (e: Exception) {
+            return Result(emptyList(), 0, e.message ?: e.javaClass.simpleName)
+        }
         // Start a day back so all-day events (stored at UTC midnight) for today are included.
         val uri = CalendarContract.Instances.CONTENT_URI.buildUpon().also {
             ContentUris.appendId(it, now - 24 * 60 * 60 * 1000L)
@@ -48,14 +66,14 @@ object CalendarAgenda {
             CalendarContract.Instances.TITLE,
             CalendarContract.Instances.BEGIN,
             CalendarContract.Instances.END,
-            CalendarContract.Instances.ALL_DAY
+            CalendarContract.Instances.ALL_DAY,
+            CalendarContract.Instances.STATUS
         )
-        val selection = "${CalendarContract.Instances.VISIBLE} = 1 AND " +
-            "(${CalendarContract.Instances.STATUS} IS NULL OR ${CalendarContract.Instances.STATUS} != ${CalendarContract.Instances.STATUS_CANCELED})"
         val events = mutableListOf<AgendaEvent>()
         try {
-            context.contentResolver.query(uri, projection, selection, null, "${CalendarContract.Instances.BEGIN} ASC")?.use { c ->
+            context.contentResolver.query(uri, projection, null, null, "${CalendarContract.Instances.BEGIN} ASC")?.use { c ->
                 while (c.moveToNext()) {
+                    if (!c.isNull(5) && c.getInt(5) == CalendarContract.Instances.STATUS_CANCELED) continue
                     events += AgendaEvent(
                         eventId = c.getLong(0),
                         title = c.getString(1)?.trim().takeUnless { it.isNullOrEmpty() } ?: "(no title)",
@@ -65,10 +83,10 @@ object CalendarAgenda {
                     )
                 }
             }
-        } catch (_: Exception) {
-            return emptyList()
+        } catch (e: Exception) {
+            return Result(emptyList(), calendarCount, e.message ?: e.javaClass.simpleName)
         }
-        return selectUpcoming(events, now, ZoneId.systemDefault(), limit)
+        return Result(selectUpcoming(events, now, ZoneId.systemDefault(), limit), calendarCount)
     }
 
     /** Drops finished events and sorts what's left by when it happens locally. */
