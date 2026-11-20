@@ -210,7 +210,10 @@ fun HomeScreen(
     }
 
     val isImeVisible = WindowInsets.isImeVisible
-    val isTyping = isImeVisible || query.isNotEmpty()
+    // Only the command bar's keyboard counts as typing. A keyboard opened by something
+    // else on home (e.g. the weather card's town box) mustn't switch to the typing view,
+    // which removes the home cards and closed that box.
+    val isTyping = (isImeVisible && commandFieldFocused) || query.isNotEmpty()
 
     val favoriteApps = remember(favoriteAppPackages, installedApps) {
         installedApps.filter { it.packageName in favoriteAppPackages }
