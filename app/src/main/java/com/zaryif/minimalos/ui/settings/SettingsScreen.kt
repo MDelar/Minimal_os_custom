@@ -707,6 +707,7 @@ fun SettingsScreen(
                         Pair("TODOS", "tasks (active focus tasks)"),
                         Pair("NOTES", "notes (recent memos)"),
                         Pair("CALENDAR", "calendar (glance & schedule)"),
+                        Pair("WEATHER", "weather (today & forecast, uses internet)"),
                         Pair("SHORTCUTS", "shortcuts (favorite pinned apps)"),
                         Pair("ALARM_COUNTDOWN", "alarm countdown (live time until alarm)"),
                         Pair("POMODORO", "pomodoro (live focus & controls)"),

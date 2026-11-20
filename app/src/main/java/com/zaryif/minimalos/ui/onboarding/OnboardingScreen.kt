@@ -270,8 +270,8 @@ private fun StepWelcome(onNext: () -> Unit) {
 
             CleanFeatureRow(
                 icon = Icons.Default.Security,
-                title = "100% Offline & Zero Telemetry",
-                subtitle = "No tracking, no cloud accounts, no ads, and strictly zero notification anxiety."
+                title = "Private & Zero Telemetry",
+                subtitle = "No tracking, no cloud accounts, no ads. Only goes online for the optional weather card."
             )
         }
 
