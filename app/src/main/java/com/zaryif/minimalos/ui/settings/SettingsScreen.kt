@@ -163,7 +163,6 @@ fun SettingsScreen(
     var showAppPickerModal by remember { mutableStateOf(false) }
     var showAddCommandModal by remember { mutableStateOf(false) }
     var showAboutModal by remember { mutableStateOf(false) }
-    var showOnboardingModal by remember { mutableStateOf(false) }
     var showCommandGuideModal by remember { mutableStateOf(false) }
 
     val (appVersionName, appVersionCode) = remember(context) {
@@ -1628,7 +1627,8 @@ fun SettingsScreen(
                                 Text(text = "REPLAY", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MinimalRed)
                             }
                         },
-                        onClick = { showOnboardingModal = true }
+                        // Full screen, like first run. A dialog here was cut off on the Titan 2 Elite.
+                        onClick = { onNavigateToOnboarding() }
                     )
 
                     SettingsInsetDivider()
@@ -2311,55 +2311,6 @@ fun SettingsScreen(
         // =========================================================
         // APP WALKTHROUGH & ONBOARDING FULLSCREEN MODAL
         // =========================================================
-        if (showOnboardingModal) {
-            // Full-screen: the walkthrough pads itself for the status and navigation
-            // bars. With the default (fit inside the system bars) the dialog sat too
-            // low on the Titan 2 Elite and its bottom button was off screen.
-            Dialog(
-                onDismissRequest = { showOnboardingModal = false },
-                properties = DialogProperties(
-                    usePlatformDefaultWidth = false,
-                    decorFitsSystemWindows = false
-                )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MinimalBlack)
-                ) {
-                    OnboardingScreen(
-                        userPreferences = userPreferences,
-                        onFinish = {
-                            scope.launch {
-                                userPreferences.setOnboardingCompleted(true)
-                            }
-                            showOnboardingModal = false
-                        }
-                    )
-
-                    // Top Close Button
-                    IconButton(
-                        onClick = { showOnboardingModal = false },
-                        modifier = Modifier
-                            .statusBarsPadding()
-                            .padding(16.dp)
-                            .align(Alignment.TopEnd)
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MinimalDarkCardBg.copy(alpha = 0.85f))
-                            .border(1.dp, MinimalDarkGray, CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close Walkthrough",
-                            tint = MinimalWhite,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-            }
-        }
-
         if (showCommandGuideModal) {
             CommandHelpDialog(
                 onDismiss = { showCommandGuideModal = false },
