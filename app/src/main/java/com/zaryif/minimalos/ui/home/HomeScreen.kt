@@ -142,6 +142,7 @@ fun HomeScreen(
     val notes by storageRepository.notes.collectAsState()
     val wallpaperUriString by userPreferences.customWallpaperUri.collectAsState(initial = null)
     val favoriteAppPackages by userPreferences.favoriteApps.collectAsState(initial = emptySet())
+    val homeHeaderText by userPreferences.homeHeaderText.collectAsState(initial = UserPreferences.DEFAULT_HOME_HEADER)
     val homeWidgetsOrder by userPreferences.homeWidgets.collectAsState(initial = UserPreferences.DEFAULT_HOME_WIDGETS)
     val homeSystemWidgets by userPreferences.homeSystemWidgets.collectAsState(initial = emptySet())
     val showAllTodosPref by userPreferences.homeShowAllTodos.collectAsState(initial = false)
@@ -515,12 +516,16 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Your own text (Settings › Appearance › Home header), shown like a shell prompt.
                     Text(
-                        text = "minimal",
-                        fontSize = 15.sp,
+                        text = homeHeaderText,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                         color = MinimalWhite,
-                        letterSpacing = 1.sp
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false).padding(end = 12.dp)
                     )
 
                     // Mini Apps Shortcuts (Assistant, Clock, Memo, Settings)
