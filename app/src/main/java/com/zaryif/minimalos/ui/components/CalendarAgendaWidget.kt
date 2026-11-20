@@ -170,8 +170,12 @@ fun MinimalHomeCalendarWidget(
                 )
                 else -> {
                     val zone = ZoneId.systemDefault()
-                    events.forEach { e ->
-                        val label = CalendarAgenda.whenLabel(e, now, zone)
+                    val labels = events.map { CalendarAgenda.whenLabel(it, now, zone) }
+                    // Monospace, padded to the longest label, so titles line up without
+                    // a fixed width that long labels ("mon 08:50") can overflow.
+                    val labelLength = labels.maxOfOrNull { it.length } ?: 0
+                    events.forEachIndexed { index, e ->
+                        val label = labels[index]
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -180,13 +184,14 @@ fun MinimalHomeCalendarWidget(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = label,
+                                text = label.padEnd(labelLength),
                                 fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace,
                                 color = if (label == "now") MinimalRed else MinimalGray,
                                 maxLines = 1,
-                                modifier = Modifier.width(80.dp)
+                                softWrap = false
                             )
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = e.title,
                                 fontSize = 13.sp,
