@@ -137,6 +137,10 @@ fun MinimalDynamicHomeWidgets(
                     )
                 }
 
+                "WEATHER" -> {
+                    MinimalHomeWeatherWidget()
+                }
+
                 "ALARM_COUNTDOWN" -> {
                     MinimalHomeAlarmCountdownWidget(
                         onOpenClock = onOpenClock
