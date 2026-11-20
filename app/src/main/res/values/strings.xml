@@ -44,8 +44,8 @@
     <string name="settings_set_default">set as default launcher</string>
     <string name="settings_about">about</string>
     <string name="settings_reset_onboarding">reset onboarding</string>
-    <string name="about_version">Minimal OS Launcher v1.7.5</string>
-    <string name="about_author">by MD. Zarif Azfar (@zaryif)</string>
+    <string name="about_version">Minimal OS Launcher</string>
+    <string name="about_author">by Mohammed Delar (@MDelar), based on Minimal OS by MD. Zarif Azfar</string>
     <string name="search_apps_hint">search apps…</string>
     <string name="no_notifications">no notifications yet</string>
     <string name="swipe_up_hint">swipe up for apps</string>
