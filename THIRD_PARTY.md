@@ -1,11 +1,18 @@
 # Third-party material
 
-## Omarchy theme palettes
+## Minimal OS
+
+This project is a fork of [Minimal OS](https://github.com/zaryif/Minimal_os)
+by MD. Zarif Azfar, released under the MIT licence. The original copyright
+notice is kept in [LICENSE](LICENSE).
+
+## Omarchy theme colours
 
 The `OMARCHY_THEMES` colour palettes in
-`app/src/main/java/com/zaryif/minimalos/ui/theme/Color.kt` are taken from the
-dark themes in [Omarchy](https://github.com/omacom/omarchy), by way of the
-`colors.toml` files bundled with [Omalauncher](https://github.com/SimonSchubert/omalauncher).
+`app/src/main/java/com/zaryif/minimalos/ui/theme/Color.kt` come from the
+dark themes in [Omarchy](https://github.com/omacom/omarchy), taken from the
+`colors.toml` files bundled with
+[Omalauncher](https://github.com/SimonSchubert/omalauncher).
 
 Omarchy is released under the MIT licence:
 
@@ -29,4 +36,4 @@ Omarchy is released under the MIT licence:
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 > SOFTWARE.
 
-This project is not affiliated with Omarchy or Omalauncher.
+This project is not affiliated with Minimal OS, Omarchy or Omalauncher.
