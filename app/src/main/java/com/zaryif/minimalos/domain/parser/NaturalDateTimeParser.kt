@@ -53,6 +53,9 @@ object NaturalDateTimeParser {
         var workingText = rawInput.trim()
         var hasExplicitDate = false
         var hasExplicitTime = false
+        // True for "in 30 mins" / "in 2 hours": the offset gives the exact time, so later
+        // time-of-day defaults and parsing must not overwrite it.
+        var offsetSetsClockTime = false
 
         // 1. Relative offset expressions like "in 2 hours", "in 30 mins"
         val inOffsetRegex = Regex("(?i)\\bin\\s+(\\d+)\\s*(hours?|hrs?|minutes?|mins?|days?)\\b")
@@ -61,8 +64,8 @@ object NaturalDateTimeParser {
             val amount = inOffsetMatch.groupValues[1].toIntOrNull() ?: 1
             val unit = inOffsetMatch.groupValues[2].lowercase(Locale.getDefault())
             when {
-                unit.startsWith("h") -> cal.add(Calendar.HOUR_OF_DAY, amount)
-                unit.startsWith("m") -> cal.add(Calendar.MINUTE, amount)
+                unit.startsWith("h") -> { cal.add(Calendar.HOUR_OF_DAY, amount); offsetSetsClockTime = true }
+                unit.startsWith("m") -> { cal.add(Calendar.MINUTE, amount); offsetSetsClockTime = true }
                 unit.startsWith("d") -> cal.add(Calendar.DAY_OF_YEAR, amount)
             }
             workingText = workingText.removeRange(inOffsetMatch.range).trim()
@@ -157,15 +160,35 @@ object NaturalDateTimeParser {
         }
 
         // 5. Time parsing: "at 7.30 am", "7: 30 am", "7.30 am", "7 am", "at 7pm", "19:30", "7:30"
-        var hour = cal.get(Calendar.HOUR_OF_DAY) + 1
-        var minute = 0
+        // Default when no time is given: the next full hour. After 23:00 that's
+        // midnight tomorrow (it used to be clamped back to 23:00 today).
+        var hour: Int
+        var minute: Int
+        var defaultRollsToTomorrow = false
+        var usingDefaultTime = false
+        if (offsetSetsClockTime) {
+            hour = cal.get(Calendar.HOUR_OF_DAY)
+            minute = cal.get(Calendar.MINUTE)
+        } else {
+            hour = cal.get(Calendar.HOUR_OF_DAY) + 1
+            minute = 0
+            usingDefaultTime = true
+            if (hour >= 24) {
+                if (hasExplicitDate) {
+                    hour = 23 // a date was given ("tomorrow"): keep the default on that date
+                } else {
+                    hour = 0
+                    defaultRollsToTomorrow = true
+                }
+            }
+        }
 
         // Explicit time patterns (avoids bare numbers like "2" in "Buy 2 laptops"):
         // 1) "at 7", "at 7:30", "at 7am", "at 7:30 pm"
         // 2) "7:30", "7.30", "7:30am", "7:30 pm", "19:30" (with explicit colon/dot minutes)
         // 3) "7am", "7 pm" (with explicit am/pm)
         val timeRegex = Regex("(?i)\\b(?:at\\s+(\\d{1,2})(?:\\s*[:.]\\s*(\\d{2}))?\\s*(am|pm)?|(\\d{1,2})\\s*[:.]\\s*(\\d{2})\\s*(am|pm)?|(\\d{1,2})\\s*(am|pm))\\b")
-        val timeMatch = timeRegex.find(workingText)
+        val timeMatch = if (offsetSetsClockTime) null else timeRegex.find(workingText)
         if (timeMatch != null) {
             val hStr = timeMatch.groups[1]?.value ?: timeMatch.groups[4]?.value ?: timeMatch.groups[7]?.value ?: ""
             val mStr = timeMatch.groups[2]?.value ?: timeMatch.groups[5]?.value ?: ""
@@ -184,8 +207,9 @@ object NaturalDateTimeParser {
                 }
                 workingText = workingText.removeRange(timeMatch.range).trim()
                 hasExplicitTime = true
+                usingDefaultTime = false
             }
-        } else {
+        } else if (!offsetSetsClockTime) {
             // Named times of day
             val tonightRegex = Regex("(?i)\\btonight\\b")
             if (tonightRegex.containsMatchIn(workingText)) {
@@ -193,6 +217,7 @@ object NaturalDateTimeParser {
                 minute = 0
                 workingText = workingText.replace(tonightRegex, "").trim()
                 hasExplicitTime = true
+                usingDefaultTime = false
             }
             val noonRegex = Regex("(?i)\\bnoon\\b")
             if (noonRegex.containsMatchIn(workingText)) {
@@ -200,6 +225,7 @@ object NaturalDateTimeParser {
                 minute = 0
                 workingText = workingText.replace(noonRegex, "").trim()
                 hasExplicitTime = true
+                usingDefaultTime = false
             }
             val morningRegex = Regex("(?i)\\b(?:in\\s+the\\s+)?morning\\b")
             if (morningRegex.containsMatchIn(workingText)) {
@@ -207,6 +233,7 @@ object NaturalDateTimeParser {
                 minute = 0
                 workingText = workingText.replace(morningRegex, "").trim()
                 hasExplicitTime = true
+                usingDefaultTime = false
             }
             val eveningRegex = Regex("(?i)\\b(?:in\\s+the\\s+)?evening\\b")
             if (eveningRegex.containsMatchIn(workingText)) {
@@ -214,6 +241,7 @@ object NaturalDateTimeParser {
                 minute = 0
                 workingText = workingText.replace(eveningRegex, "").trim()
                 hasExplicitTime = true
+                usingDefaultTime = false
             }
         }
 
@@ -226,6 +254,9 @@ object NaturalDateTimeParser {
             workingText = defaultTitle
         }
 
+        if (usingDefaultTime && defaultRollsToTomorrow) {
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+        }
         cal.set(Calendar.HOUR_OF_DAY, hour.coerceIn(0, 23))
         cal.set(Calendar.MINUTE, minute.coerceIn(0, 59))
         cal.set(Calendar.SECOND, 0)

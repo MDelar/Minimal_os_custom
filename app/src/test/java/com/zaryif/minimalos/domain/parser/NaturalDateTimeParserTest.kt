@@ -77,4 +77,43 @@ class NaturalDateTimeParserTest {
         assertEquals(10, result.hour)
         assertEquals("Dentist appointment", result.cleanTitle)
     }
+
+    // Relative offsets must land on now + offset (to the minute), at any time of day.
+    // These used to be overwritten by the "next full hour" default.
+    private fun assertLandsAt(input: String, offsetMillis: Long) {
+        val before = System.currentTimeMillis()
+        val result = NaturalDateTimeParser.parse(input, "Event")
+        val after = System.currentTimeMillis()
+        // Seconds are zeroed, so allow up to a minute below the exact target.
+        assertTrue("$input landed too early", result.startMillis >= before + offsetMillis - 60_000)
+        assertTrue("$input landed too late", result.startMillis <= after + offsetMillis)
+    }
+
+    @Test
+    fun testRelativeMinutesAreExact() {
+        assertLandsAt("Check oven in 30 mins", 30 * 60_000L)
+        assertLandsAt("Call back in 5 minutes", 5 * 60_000L)
+    }
+
+    @Test
+    fun testRelativeHoursAreExact() {
+        assertLandsAt("Leave in 2 hours", 2 * 60 * 60_000L)
+        assertLandsAt("Stretch in 1 hr", 60 * 60_000L)
+    }
+
+    @Test
+    fun testRelativeOffsetIgnoresOtherNumbers() {
+        val before = System.currentTimeMillis()
+        val result = NaturalDateTimeParser.parse("Buy 2 laptops in 30 mins", "Event")
+        assertTrue(result.startMillis >= before + 29 * 60_000L)
+        assertTrue(result.startMillis <= System.currentTimeMillis() + 30 * 60_000L)
+    }
+
+    @Test
+    fun testDefaultTimeIsNeverInThePast() {
+        val before = System.currentTimeMillis()
+        val result = NaturalDateTimeParser.parse("Water plants", "Event")
+        assertTrue(result.startMillis > before)
+        assertEquals(0, result.minute)
+    }
 }
