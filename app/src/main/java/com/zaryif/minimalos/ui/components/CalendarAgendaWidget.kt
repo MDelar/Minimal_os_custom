@@ -71,6 +71,8 @@ fun MinimalHomeCalendarWidget(
     val context = LocalContext.current
     var hasPermission by remember { mutableStateOf(CalendarAgenda.hasPermission(context)) }
     var events by remember { mutableStateOf<List<AgendaEvent>>(emptyList()) }
+    var calendarCount by remember { mutableStateOf(-1) }
+    var readError by remember { mutableStateOf<String?>(null) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var loaded by remember { mutableStateOf(false) }
 
@@ -84,9 +86,12 @@ fun MinimalHomeCalendarWidget(
             hasPermission = CalendarAgenda.hasPermission(context)
             while (isActive && hasPermission) {
                 now = System.currentTimeMillis()
-                events = withContext(Dispatchers.IO) {
+                val result = withContext(Dispatchers.IO) {
                     CalendarAgenda.upcoming(context, limit = maxEvents, now = now)
-                } ?: emptyList()
+                }
+                events = result?.events ?: emptyList()
+                calendarCount = result?.calendarCount ?: -1
+                readError = result?.error
                 loaded = true
                 delay(60_000) // keeps "now" and finished events up to date
             }
@@ -138,6 +143,14 @@ fun MinimalHomeCalendarWidget(
                 !hasPermission -> Text(
                     text = "tap to show your next events",
                     fontSize = 13.sp, color = MinimalWhite
+                )
+                loaded && readError != null -> Text(
+                    text = "couldn't read your calendar: $readError",
+                    fontSize = 12.sp, color = MinimalRed
+                )
+                loaded && calendarCount == 0 -> Text(
+                    text = "no calendars on this phone yet. Turn on calendar sync in Settings › Accounts",
+                    fontSize = 12.sp, color = MinimalGray
                 )
                 loaded && events.isEmpty() -> Text(
                     text = "nothing in the next 7 days",
