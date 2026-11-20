@@ -369,58 +369,7 @@ fun MinimalHomeNotesWidget(
     }
 }
 
-@Composable
-fun MinimalHomeCalendarWidget(
-    onOpenCalendar: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MinimalCardBg)
-            .border(1.dp, MinimalDarkGray, RoundedCornerShape(12.dp))
-            .clickable { onOpenCalendar() }
-            .padding(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.CalendarToday,
-                    contentDescription = null,
-                    tint = MinimalRed,
-                    modifier = Modifier.size(15.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = AppStrings.widgetCalendarTitle,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MinimalWhite,
-                        letterSpacing = 0.5.sp
-                    )
-                    Text(
-                        text = AppStrings.widgetCalendarSubtitle,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = MinimalGray
-                    )
-                }
-            }
-            Text(
-                text = "OPEN ->",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = MinimalRed
-            )
-        }
-    }
-}
+// MinimalHomeCalendarWidget lives in CalendarAgendaWidget.kt
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
