@@ -113,15 +113,13 @@ class MinimalNotificationService : NotificationListenerService() {
             delay(250)
             try {
                 val active = activeNotifications ?: return@launch
-                val ranking = currentRanking
-                val r = NotificationListenerService.Ranking()
                 val candidates = active.map { sbn ->
                     val flags = sbn.notification.flags
                     BadgeCandidate(
                         packageName = sbn.packageName,
                         ongoing = sbn.isOngoing || flags and Notification.FLAG_FOREGROUND_SERVICE != 0,
                         groupSummary = flags and Notification.FLAG_GROUP_SUMMARY != 0,
-                        canShowBadge = ranking?.getRanking(sbn.key, r) != true || r.canShowBadge()
+                        number = sbn.notification.number
                     )
                 }
                 _appBadges.value = AppBadges.count(candidates, packageName)

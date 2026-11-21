@@ -4,8 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AppBadgesTest {
-    private fun n(pkg: String, ongoing: Boolean = false, summary: Boolean = false, badge: Boolean = true) =
-        BadgeCandidate(pkg, ongoing, summary, badge)
+    private fun n(pkg: String, ongoing: Boolean = false, summary: Boolean = false, number: Int = 0) =
+        BadgeCandidate(pkg, ongoing, summary, number)
 
     @Test
     fun countsOnePerChatAndIgnoresTheGroupHeader() {
@@ -17,13 +17,21 @@ class AppBadgesTest {
     }
 
     @Test
-    fun ignoresOngoingOwnAndBadgeDisabledNotifications() {
+    fun appThatOnlyPostsAHeaderStillCounts() {
+        val counts = AppBadges.count(
+            listOf(n("com.google.android.gm", summary = true, number = 6), n("com.example", summary = true)),
+            ownPackage = "com.minimal.os"
+        )
+        assertEquals(mapOf("com.google.android.gm" to 6, "com.example" to 1), counts)
+    }
+
+    @Test
+    fun ignoresOngoingAndOwnNotifications() {
         val counts = AppBadges.count(
             listOf(
                 n("com.waze", ongoing = true),
                 n("com.google.android.projection.gearhead", ongoing = true),
                 n("com.minimal.os"),
-                n("com.google.android.gm", badge = false),
                 n("com.snapchat.android")
             ),
             ownPackage = "com.minimal.os"
