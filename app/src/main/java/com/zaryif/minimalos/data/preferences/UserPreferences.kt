@@ -32,6 +32,7 @@ class UserPreferences(private val context: Context) {
         private val CUSTOM_WALLPAPER_URI = stringPreferencesKey("custom_wallpaper_uri")
         private val HOME_HEADER_TEXT = stringPreferencesKey("home_header_text")
         private val UNLOCK_ANIMATION = booleanPreferencesKey("unlock_animation")
+        private val DRAWER_NOTIFIED_FIRST = booleanPreferencesKey("drawer_notified_first")
         private val FAVORITE_APPS = stringSetPreferencesKey("favorite_apps")
         private val DECK_SYSTEM_WIDGETS = stringSetPreferencesKey("system_widgets")
         private val HOME_SYSTEM_WIDGETS = stringSetPreferencesKey("home_system_widgets")
@@ -343,6 +344,14 @@ class UserPreferences(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[QUICK_NOTE_PINNED] = pinned
         }
+    }
+
+    /** App drawer: list apps with notifications above the alphabetical list. Off by default. */
+    val drawerNotifiedFirst: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[DRAWER_NOTIFIED_FIRST] ?: false }
+
+    suspend fun setDrawerNotifiedFirst(enabled: Boolean) {
+        context.dataStore.edit { prefs -> prefs[DRAWER_NOTIFIED_FIRST] = enabled }
     }
 
     val notificationHistoryEnabled: Flow<Boolean> = context.dataStore.data

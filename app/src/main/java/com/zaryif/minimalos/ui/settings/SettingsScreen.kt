@@ -155,6 +155,7 @@ fun SettingsScreen(
     val commandHistoryEnabled by userPreferences.commandHistoryEnabled.collectAsState(initial = true)
     val commandHistory by userPreferences.commandHistory.collectAsState(initial = emptyList())
     val notificationHistoryEnabled by userPreferences.notificationHistoryEnabled.collectAsState(initial = true)
+    val drawerNotifiedFirst by userPreferences.drawerNotifiedFirst.collectAsState(initial = false)
     val showAllTodosPref by userPreferences.homeShowAllTodos.collectAsState(initial = false)
     val showAllNotesPref by userPreferences.homeShowAllNotes.collectAsState(initial = false)
     val homeSystemWidgets by userPreferences.homeSystemWidgets.collectAsState(initial = emptySet())
@@ -1484,6 +1485,28 @@ fun SettingsScreen(
                             val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                             context.startActivity(intent)
                         }
+                    )
+
+                    SettingsInsetDivider()
+
+                    // Item 3b: app drawer ordering by notifications
+                    SettingsItemRow(
+                        icon = Icons.Default.Notifications,
+                        title = "Notified Apps First",
+                        subtitle = if (drawerNotifiedFirst) "Apps with notifications sit above the A–Z list" else "App drawer stays A–Z; counts still show",
+                        trailingContent = {
+                            Switch(
+                                checked = drawerNotifiedFirst,
+                                onCheckedChange = { scope.launch { userPreferences.setDrawerNotifiedFirst(it) } },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MinimalOnAccent,
+                                    checkedTrackColor = MinimalRed,
+                                    uncheckedThumbColor = MinimalGray,
+                                    uncheckedTrackColor = MinimalDarkCardBg
+                                )
+                            )
+                        },
+                        onClick = { scope.launch { userPreferences.setDrawerNotifiedFirst(!drawerNotifiedFirst) } }
                     )
 
                     SettingsInsetDivider()
