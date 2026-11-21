@@ -266,6 +266,7 @@ fun MinimalAppContent(
 ) {
     var installedApps by remember { mutableStateOf(appRepository.getInstalledApps()) }
     val favoriteAppPackages by userPreferences.favoriteApps.collectAsState(initial = emptySet())
+    val drawerNotifiedFirst by userPreferences.drawerNotifiedFirst.collectAsState(initial = false)
     val deckWidgetIds by userPreferences.deckSystemWidgets.collectAsState(initial = emptySet())
     val onboardingCompleted by userPreferences.onboardingCompleted.collectAsState(initial = null)
     val scope = rememberCoroutineScope()
@@ -410,6 +411,7 @@ fun MinimalAppContent(
                 AppDrawerScreen(
                     apps = installedApps,
                     favoriteAppPackages = favoriteAppPackages,
+                    notifiedFirst = drawerNotifiedFirst,
                     onTogglePin = { app ->
                         scope.launch {
                             val updated = if (app.packageName in favoriteAppPackages) {

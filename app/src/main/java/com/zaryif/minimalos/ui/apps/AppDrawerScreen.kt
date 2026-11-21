@@ -58,6 +58,10 @@ import androidx.compose.ui.window.Dialog
 import com.zaryif.minimalos.domain.model.AppInfo
 import com.zaryif.minimalos.ui.theme.MinimalBlack
 import com.zaryif.minimalos.ui.theme.MinimalCardBg
+import com.zaryif.minimalos.service.MinimalNotificationService
+import com.zaryif.minimalos.domain.notifications.AppBadges
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.text.font.FontFamily
 import com.zaryif.minimalos.ui.theme.MinimalDarkCardBg
 import com.zaryif.minimalos.ui.theme.MinimalDarkGray
 import com.zaryif.minimalos.ui.theme.MinimalGray
@@ -69,6 +73,8 @@ import com.zaryif.minimalos.ui.theme.MinimalWhite
 fun AppDrawerScreen(
     apps: List<AppInfo>,
     favoriteAppPackages: Set<String> = emptySet(),
+    /** List apps with notifications above the A–Z list (Settings › System). */
+    notifiedFirst: Boolean = false,
     onTogglePin: ((AppInfo) -> Unit)? = null,
     onUninstall: ((AppInfo) -> Unit)? = null,
     onBack: () -> Unit
@@ -76,6 +82,8 @@ fun AppDrawerScreen(
     val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedAppForOptions by remember { mutableStateOf<AppInfo?>(null) }
+
+    val badges by MinimalNotificationService.appBadges.collectAsState()
 
     val filteredApps = remember(searchQuery, apps) {
         if (searchQuery.isBlank()) {
@@ -204,8 +212,11 @@ fun AppDrawerScreen(
             }
 
             // App List
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(filteredApps, key = { it.packageName }) { app ->
+            // Apps with notifications on top, only when not searching (search keeps best match first).
+            val notifiedApps = if (notifiedFirst && searchQuery.isBlank()) filteredApps.filter { (badges[it.packageName] ?: 0) > 0 } else emptyList()
+            val otherApps = if (notifiedApps.isEmpty()) filteredApps else filteredApps.filter { (badges[it.packageName] ?: 0) == 0 }
+
+            val appRow: @Composable (AppInfo) -> Unit = { app ->
                     val isPinned = app.packageName in favoriteAppPackages
                     val interactionSource = remember { MutableInteractionSource() }
                     val isPressed by interactionSource.collectIsPressedAsState()
@@ -265,15 +276,42 @@ fun AppDrawerScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
 
-                            Text(
-                                text = "open",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MinimalDarkGray
-                            )
+                            val count = badges[app.packageName] ?: 0
+                            if (count > 0) {
+                                // Notification count in the theme's accent
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(MinimalRed.copy(alpha = 0.16f))
+                                        .padding(horizontal = 7.dp, vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text = AppBadges.label(count),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = MinimalRed
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = "open",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MinimalDarkGray
+                                )
+                            }
                         }
                     }
+            }
+
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                if (notifiedApps.isNotEmpty()) {
+                    item(key = "header:notified") { DrawerSectionLabel("notifications") }
+                    items(notifiedApps, key = { it.packageName }) { appRow(it) }
+                    item(key = "header:all") { DrawerSectionLabel("all apps") }
                 }
+                items(otherApps, key = { it.packageName }) { appRow(it) }
             }
         }
     }
@@ -394,4 +432,17 @@ fun AppDrawerScreen(
             }
         }
     }
+}
+
+@Composable
+private fun DrawerSectionLabel(text: String) {
+    Text(
+        text = text,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        fontFamily = FontFamily.Monospace,
+        color = MinimalGray,
+        letterSpacing = 1.sp,
+        modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp)
+    )
 }

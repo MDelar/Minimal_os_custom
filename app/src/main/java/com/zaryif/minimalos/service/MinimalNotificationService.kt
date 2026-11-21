@@ -18,6 +18,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import com.zaryif.minimalos.domain.notifications.AppBadges
+import com.zaryif.minimalos.domain.notifications.BadgeCandidate
 
 class MinimalNotificationService : NotificationListenerService() {
 
@@ -41,6 +45,7 @@ class MinimalNotificationService : NotificationListenerService() {
         super.onListenerConnected()
         instance = this
         refreshActiveNotifications()
+        scheduleBadgeRefresh()
         MinimalMediaManager.init(this)
     }
 
@@ -49,6 +54,7 @@ class MinimalNotificationService : NotificationListenerService() {
         sbn?.let {
             addNotification(it)
             MinimalMediaManager.refresh(this)
+            scheduleBadgeRefresh()
         }
     }
 
@@ -57,6 +63,7 @@ class MinimalNotificationService : NotificationListenerService() {
         sbn?.let {
             removeNotification(it.key)
             MinimalMediaManager.refresh(this)
+            scheduleBadgeRefresh()
         }
     }
 
@@ -91,6 +98,34 @@ class MinimalNotificationService : NotificationListenerService() {
             if (userPreferences.notificationHistoryEnabled.first()) {
                 NotificationHistoryRepository.getInstance(this@MinimalNotificationService).saveNotification(item)
             }
+        }
+    }
+
+    private var badgeJob: Job? = null
+
+    /**
+     * Recounts app drawer badges from what's in the shade. Bursts (a group chat,
+     * clearing all) are batched into one count shortly after they settle.
+     */
+    private fun scheduleBadgeRefresh() {
+        badgeJob?.cancel()
+        badgeJob = serviceScope.launch {
+            delay(250)
+            try {
+                val active = activeNotifications ?: return@launch
+                val ranking = currentRanking
+                val r = NotificationListenerService.Ranking()
+                val candidates = active.map { sbn ->
+                    val flags = sbn.notification.flags
+                    BadgeCandidate(
+                        packageName = sbn.packageName,
+                        ongoing = sbn.isOngoing || flags and Notification.FLAG_FOREGROUND_SERVICE != 0,
+                        groupSummary = flags and Notification.FLAG_GROUP_SUMMARY != 0,
+                        canShowBadge = ranking?.getRanking(sbn.key, r) != true || r.canShowBadge()
+                    )
+                }
+                _appBadges.value = AppBadges.count(candidates, packageName)
+            } catch (_: Exception) {}
         }
     }
 
@@ -179,6 +214,10 @@ class MinimalNotificationService : NotificationListenerService() {
 
         private val _notifications = MutableStateFlow<List<NotificationItem>>(emptyList())
         val notifications: StateFlow<List<NotificationItem>> = _notifications.asStateFlow()
+
+        private val _appBadges = MutableStateFlow<Map<String, Int>>(emptyMap())
+        /** Notification count per package, for the app drawer. */
+        val appBadges: StateFlow<Map<String, Int>> = _appBadges.asStateFlow()
 
         fun isPermissionGranted(context: Context): Boolean {
             return NotificationManagerCompat.getEnabledListenerPackages(context)
