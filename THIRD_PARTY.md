@@ -36,4 +36,11 @@ Omarchy is released under the MIT licence:
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 > SOFTWARE.
 
-This project is not affiliated with Minimal OS, Omarchy or Omalauncher.
+## Open-Meteo
+
+The weather widget uses forecast and place-search data from
+[Open-Meteo.com](https://open-meteo.com), licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Requests go straight
+from the phone to Open-Meteo; no key or account is used.
+
+This project is not affiliated with Minimal OS, Omarchy, Omalauncher or Open-Meteo.
