@@ -43,4 +43,10 @@ The weather widget uses forecast and place-search data from
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Requests go straight
 from the phone to Open-Meteo; no key or account is used.
 
+## Adhan
+
+Prayer times are calculated on the phone with
+[adhan-java](https://github.com/batoulapps/adhan-java) by Batoul Apps,
+licensed under the MIT License.
+
 This project is not affiliated with Minimal OS, Omarchy, Omalauncher or Open-Meteo.
