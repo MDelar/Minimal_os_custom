@@ -241,6 +241,11 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         appWidgetHost.startListening()
+        // Silence during lessons: catch timetable edits whenever you come home.
+        val app = applicationContext
+        if (com.zaryif.minimalos.domain.lessons.LessonSilencer.isEnabled(app)) {
+            lifecycleScope.launch(Dispatchers.IO) { com.zaryif.minimalos.domain.lessons.LessonSilencer.sync(app) }
+        }
     }
 
     override fun onStop() {
