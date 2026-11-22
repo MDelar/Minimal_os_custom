@@ -1,5 +1,6 @@
 package com.zaryif.minimalos.ui.home
 
+import androidx.lifecycle.repeatOnLifecycle
 import android.Manifest
 import android.app.SearchManager
 import android.content.Context
@@ -233,14 +234,18 @@ fun HomeScreen(
     var currentTime by remember { mutableStateOf("") }
     var currentDate by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
+    // Only ticks while home is on screen, once a minute on the minute (it shows h:mm).
+    val clockLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(clockLifecycle) {
         val timeFormat = SimpleDateFormat("h:mm", Locale.getDefault())
         val dateFormat = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
-        while (true) {
-            val now = Date()
-            currentTime = timeFormat.format(now)
-            currentDate = dateFormat.format(now).lowercase()
-            delay(1000)
+        clockLifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            while (true) {
+                val now = Date()
+                currentTime = timeFormat.format(now)
+                currentDate = dateFormat.format(now).lowercase()
+                delay(com.zaryif.minimalos.util.Ticks.untilNextMinute())
+            }
         }
     }
 

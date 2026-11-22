@@ -1,5 +1,6 @@
 package com.zaryif.minimalos.ui.components
 
+import androidx.lifecycle.repeatOnLifecycle
 import android.content.Intent
 import android.provider.AlarmClock
 import com.zaryif.minimalos.util.AlarmClockPermissionHelper
@@ -58,16 +59,19 @@ fun MinimalClockSheet(
     var showTimerDialog by remember { mutableStateOf(false) }
     var showAlarmDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    val sheetLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(sheetLifecycle) {
         val timeFormat = SimpleDateFormat("h:mm", Locale.getDefault())
         val secFormat = SimpleDateFormat("ss", Locale.getDefault())
         val dateFormat = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault())
-        while (true) {
-            val now = Date()
-            currentTime = timeFormat.format(now)
-            currentSeconds = secFormat.format(now)
-            currentDate = dateFormat.format(now).lowercase()
-            delay(1000)
+        sheetLifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            while (true) {
+                val now = Date()
+                currentTime = timeFormat.format(now)
+                currentSeconds = secFormat.format(now)
+                currentDate = dateFormat.format(now).lowercase()
+                delay(1000 - System.currentTimeMillis() % 1000) // on the second
+            }
         }
     }
 

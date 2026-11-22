@@ -47,7 +47,9 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8: drops unused code (most of the icon library) and optimises the rest.
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -95,6 +97,10 @@ dependencies {
 
     // DataStore Preferences
     implementation("androidx.datastore:datastore-preferences:1.1.2")
+
+    // Installs the libraries' bundled startup profiles on sideloaded installs,
+    // so Compose is pre-compiled instead of interpreted on first runs.
+    implementation("androidx.profileinstaller:profileinstaller:1.4.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

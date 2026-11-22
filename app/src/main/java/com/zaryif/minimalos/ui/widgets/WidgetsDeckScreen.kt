@@ -1,5 +1,6 @@
 package com.zaryif.minimalos.ui.widgets
 
+import androidx.lifecycle.repeatOnLifecycle
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetManager
 import android.content.Intent
@@ -1006,18 +1007,20 @@ private fun RabbitAlarmWidgetCard(
         mutableStateOf(AlarmClockPermissionHelper.canScheduleExactAlarms(context))
     }
 
-    LaunchedEffect(Unit) {
-        hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
-        triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
-        var ticks = 0
-        while (true) {
-            currentTime = System.currentTimeMillis()
-            delay(1000)
-            ticks++
-            if (ticks >= 30) {
-                ticks = 0
-                hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
-                triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
+    // Only while on screen. Seconds are shown only in the last hour, so tick per
+    // second then and once a minute otherwise; re-read the alarm every ~30s.
+    val alarmLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(alarmLifecycle) {
+        alarmLifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            var lastCheck = 0L
+            while (true) {
+                currentTime = System.currentTimeMillis()
+                if (currentTime - lastCheck >= 30_000L) {
+                    lastCheck = currentTime
+                    hasExactPermission = AlarmClockPermissionHelper.canScheduleExactAlarms(context)
+                    triggerTime = AlarmClockPermissionHelper.getNextAlarmTriggerTime(context)
+                }
+                delay(com.zaryif.minimalos.util.Ticks.countdownDelay(triggerTime - System.currentTimeMillis()))
             }
         }
     }
