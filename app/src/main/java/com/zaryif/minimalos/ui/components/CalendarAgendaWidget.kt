@@ -83,6 +83,7 @@ fun MinimalHomeCalendarWidget(
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var loaded by remember { mutableStateOf(false) }
     var diagnostics by remember { mutableStateOf<String?>(null) }
+    var silencedUntil by remember { mutableStateOf<Long?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         hasPermission = granted
@@ -94,6 +95,7 @@ fun MinimalHomeCalendarWidget(
             hasPermission = CalendarAgenda.hasPermission(context)
             while (isActive && hasPermission) {
                 now = System.currentTimeMillis()
+                silencedUntil = com.zaryif.minimalos.domain.lessons.LessonSilencer.silencedUntil(context, now)
                 val result = withContext(Dispatchers.IO) {
                     CalendarAgenda.upcoming(context, limit = maxEvents, now = now)
                 }
@@ -146,7 +148,18 @@ fun MinimalHomeCalendarWidget(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(text = "calendar", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = MinimalGray)
                 }
-                Text(text = "open →", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MinimalRed)
+                val quietTill = silencedUntil?.let {
+                    java.time.Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
+                        .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+                }
+                Text(
+                    // Silence during lessons is holding Do Not Disturb on
+                    text = if (quietTill != null) "silenced till $quietTill" else "open →",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = if (quietTill != null) FontFamily.Monospace else null,
+                    color = MinimalRed
+                )
             }
 
             Spacer(modifier = Modifier.height(6.dp))

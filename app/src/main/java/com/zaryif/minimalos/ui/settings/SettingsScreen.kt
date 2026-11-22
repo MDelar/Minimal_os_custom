@@ -68,6 +68,8 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.LockOpen
@@ -158,6 +160,61 @@ fun SettingsScreen(
     val commandHistory by userPreferences.commandHistory.collectAsState(initial = emptyList())
     val notificationHistoryEnabled by userPreferences.notificationHistoryEnabled.collectAsState(initial = true)
     val drawerNotifiedFirst by userPreferences.drawerNotifiedFirst.collectAsState(initial = false)
+
+    // Silence during lessons (state lives in LessonSilencer's own prefs so its alarms can read it)
+    var lessonEnabled by remember { mutableStateOf(com.zaryif.minimalos.domain.lessons.LessonSilencer.isEnabled(context)) }
+    var lessonDndAccess by remember { mutableStateOf(com.zaryif.minimalos.domain.lessons.LessonSilencer.hasDndAccess(context)) }
+    var lessonCalendarAccess by remember {
+        mutableStateOf(context.checkSelfPermission(android.Manifest.permission.READ_CALENDAR) == android.content.pm.PackageManager.PERMISSION_GRANTED)
+    }
+    var lessonCalendarIds by remember { mutableStateOf(com.zaryif.minimalos.domain.lessons.LessonSilencer.calendarIds(context)) }
+    var showLessonCalendars by remember { mutableStateOf(false) }
+    val lessonCalendarPermission = rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        lessonCalendarAccess = granted
+        if (granted && lessonCalendarIds.isEmpty()) showLessonCalendars = true
+    }
+    fun requestLessonAccess() {
+        when {
+            !lessonCalendarAccess -> lessonCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR)
+            !lessonDndAccess -> try {
+                context.startActivity(
+                    android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            } catch (_: Exception) {}
+            lessonCalendarIds.isEmpty() -> showLessonCalendars = true
+        }
+    }
+    // Coming back from the Do Not Disturb access screen: pick up the new state.
+    val lessonLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lessonLifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                val had = lessonDndAccess
+                lessonDndAccess = com.zaryif.minimalos.domain.lessons.LessonSilencer.hasDndAccess(context)
+                if (!had && lessonDndAccess && lessonEnabled) {
+                    if (lessonCalendarIds.isEmpty()) showLessonCalendars = true
+                    Thread { com.zaryif.minimalos.domain.lessons.LessonSilencer.sync(context) }.start()
+                }
+            }
+        }
+        lessonLifecycle.lifecycle.addObserver(observer)
+        onDispose { lessonLifecycle.lifecycle.removeObserver(observer) }
+    }
+    if (showLessonCalendars) {
+        com.zaryif.minimalos.ui.settings.LessonCalendarsDialog(
+            options = remember { com.zaryif.minimalos.domain.lessons.LessonSilencer.calendars(context) },
+            selected = lessonCalendarIds,
+            onDismiss = { showLessonCalendars = false },
+            onSave = { ids ->
+                lessonCalendarIds = ids
+                showLessonCalendars = false
+                Thread { com.zaryif.minimalos.domain.lessons.LessonSilencer.setCalendarIds(context, ids) }.start()
+            }
+        )
+    }
     val prayerTimesEnabled by userPreferences.prayerTimesEnabled.collectAsState(initial = false)
     val prayerMethodPref by userPreferences.prayerMethod.collectAsState(initial = null)
     val prayerAsrPref by userPreferences.prayerAsrSchool.collectAsState(initial = null)
@@ -1540,6 +1597,59 @@ fun SettingsScreen(
                             context.startActivity(intent)
                         }
                     )
+
+                    SettingsInsetDivider()
+
+                    // Item 3a: silence during lessons (Do Not Disturb from a timetable calendar)
+                    SettingsItemRow(
+                        icon = Icons.Default.NotificationsOff,
+                        title = "Silence During Lessons",
+                        subtitle = when {
+                            !lessonEnabled -> "Do Not Disturb while a lesson is on"
+                            !lessonDndAccess -> "Tap to allow Do Not Disturb access"
+                            !lessonCalendarAccess -> "Tap to allow calendar access"
+                            lessonCalendarIds.isEmpty() -> "Choose your timetable calendar below"
+                            else -> "On · ${lessonCalendarIds.size} calendar${if (lessonCalendarIds.size == 1) "" else "s"}"
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = lessonEnabled,
+                                onCheckedChange = { on ->
+                                    lessonEnabled = on
+                                    com.zaryif.minimalos.domain.lessons.LessonSilencer.setEnabled(context, on)
+                                    if (on) requestLessonAccess()
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MinimalOnAccent,
+                                    checkedTrackColor = MinimalRed,
+                                    uncheckedThumbColor = MinimalGray,
+                                    uncheckedTrackColor = MinimalDarkCardBg
+                                )
+                            )
+                        },
+                        onClick = {
+                            if (lessonEnabled && (!lessonDndAccess || !lessonCalendarAccess)) requestLessonAccess()
+                            else {
+                                lessonEnabled = !lessonEnabled
+                                com.zaryif.minimalos.domain.lessons.LessonSilencer.setEnabled(context, lessonEnabled)
+                                if (lessonEnabled) requestLessonAccess()
+                            }
+                        }
+                    )
+
+                    if (lessonEnabled) {
+                        SettingsInsetDivider()
+                        SettingsItemRow(
+                            icon = Icons.Default.CalendarMonth,
+                            title = "Lesson Calendars",
+                            subtitle = if (lessonCalendarIds.isEmpty()) "None chosen" else
+                                com.zaryif.minimalos.domain.lessons.LessonSilencer.calendars(context)
+                                    .filter { it.id in lessonCalendarIds }.joinToString { it.name }.ifEmpty { "None chosen" },
+                            onClick = {
+                                if (lessonCalendarAccess) showLessonCalendars = true else requestLessonAccess()
+                            }
+                        )
+                    }
 
                     SettingsInsetDivider()
 
