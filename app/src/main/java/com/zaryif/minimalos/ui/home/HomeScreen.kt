@@ -145,6 +145,9 @@ fun HomeScreen(
     val favoriteAppPackages by userPreferences.favoriteApps.collectAsState(initial = emptySet())
     val homeHeaderText by userPreferences.homeHeaderText.collectAsState(initial = UserPreferences.DEFAULT_HOME_HEADER)
     val unlockAnimation by userPreferences.unlockAnimation.collectAsState(initial = true)
+    val prayerTimesEnabled by userPreferences.prayerTimesEnabled.collectAsState(initial = false)
+    val prayerMethod by userPreferences.prayerMethod.collectAsState(initial = null)
+    val prayerAsrSchool by userPreferences.prayerAsrSchool.collectAsState(initial = null)
     val homeWidgetsOrder by userPreferences.homeWidgets.collectAsState(initial = UserPreferences.DEFAULT_HOME_WIDGETS)
     val homeSystemWidgets by userPreferences.homeSystemWidgets.collectAsState(initial = emptySet())
     val showAllTodosPref by userPreferences.homeShowAllTodos.collectAsState(initial = false)
@@ -618,6 +621,14 @@ fun HomeScreen(
                                 fontWeight = FontWeight.Normal,
                                 color = MinimalGray
                             )
+                            if (com.zaryif.minimalos.BuildConfig.PRAYER_TIMES && prayerTimesEnabled) {
+                                com.zaryif.minimalos.ui.components.NextPrayerLine(
+                                    minuteKey = currentTime,
+                                    method = prayerMethod,
+                                    asrSchool = prayerAsrSchool,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
 
                             Spacer(modifier = Modifier.height(14.dp))
 

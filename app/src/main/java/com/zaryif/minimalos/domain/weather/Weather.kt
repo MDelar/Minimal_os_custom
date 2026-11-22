@@ -192,6 +192,14 @@ object WeatherRepository {
 
     fun placeName(context: Context): String? = prefs(context).getString(KEY_NAME, null)
 
+    /** The saved town's coordinates, or null if no town is set. */
+    fun location(context: Context): Pair<Double, Double>? {
+        val p = prefs(context)
+        val lat = p.getString(KEY_LAT, null)?.toDoubleOrNull() ?: return null
+        val lon = p.getString(KEY_LON, null)?.toDoubleOrNull() ?: return null
+        return lat to lon
+    }
+
     fun cached(context: Context): WeatherSnapshot? {
         val p = prefs(context)
         val json = p.getString(KEY_JSON, null) ?: return null

@@ -14,6 +14,9 @@ android {
 
     defaultConfig {
         applicationId = "com.minimal.os"
+        // Prayer times are in my own build; a public build can leave them out
+        // with: ./gradlew assembleRelease -PprayerTimes=false
+        buildConfigField("boolean", "PRAYER_TIMES", providers.gradleProperty("prayerTimes").orElse("true").get())
         minSdk = 26
         targetSdk = 36
         versionCode = 33
@@ -73,6 +76,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -97,6 +101,9 @@ dependencies {
 
     // DataStore Preferences
     implementation("androidx.datastore:datastore-preferences:1.1.2")
+
+    // Prayer times, calculated on the phone (MIT, github.com/batoulapps/adhan-java)
+    implementation("com.batoulapps.adhan:adhan:1.2.1")
 
     // Installs the libraries' bundled startup profiles on sideloaded installs,
     // so Compose is pre-compiled instead of interpreted on first runs.
