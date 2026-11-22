@@ -33,6 +33,9 @@ class UserPreferences(private val context: Context) {
         private val HOME_HEADER_TEXT = stringPreferencesKey("home_header_text")
         private val UNLOCK_ANIMATION = booleanPreferencesKey("unlock_animation")
         private val DRAWER_NOTIFIED_FIRST = booleanPreferencesKey("drawer_notified_first")
+        private val PRAYER_TIMES_ENABLED = booleanPreferencesKey("prayer_times_enabled")
+        private val PRAYER_METHOD = stringPreferencesKey("prayer_method")
+        private val PRAYER_ASR_SCHOOL = stringPreferencesKey("prayer_asr_school")
         private val FAVORITE_APPS = stringSetPreferencesKey("favorite_apps")
         private val DECK_SYSTEM_WIDGETS = stringSetPreferencesKey("system_widgets")
         private val HOME_SYSTEM_WIDGETS = stringSetPreferencesKey("home_system_widgets")
@@ -352,6 +355,26 @@ class UserPreferences(private val context: Context) {
 
     suspend fun setDrawerNotifiedFirst(enabled: Boolean) {
         context.dataStore.edit { prefs -> prefs[DRAWER_NOTIFIED_FIRST] = enabled }
+    }
+
+    /** Next prayer under the home clock. Off by default. */
+    val prayerTimesEnabled: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[PRAYER_TIMES_ENABLED] ?: false }
+
+    suspend fun setPrayerTimesEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs -> prefs[PRAYER_TIMES_ENABLED] = enabled }
+    }
+
+    val prayerMethod: Flow<String?> = context.dataStore.data.map { prefs -> prefs[PRAYER_METHOD] }
+
+    suspend fun setPrayerMethod(name: String) {
+        context.dataStore.edit { prefs -> prefs[PRAYER_METHOD] = name }
+    }
+
+    val prayerAsrSchool: Flow<String?> = context.dataStore.data.map { prefs -> prefs[PRAYER_ASR_SCHOOL] }
+
+    suspend fun setPrayerAsrSchool(name: String) {
+        context.dataStore.edit { prefs -> prefs[PRAYER_ASR_SCHOOL] = name }
     }
 
     val notificationHistoryEnabled: Flow<Boolean> = context.dataStore.data

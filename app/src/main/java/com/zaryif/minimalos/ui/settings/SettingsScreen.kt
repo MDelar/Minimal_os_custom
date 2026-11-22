@@ -68,6 +68,8 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.Wallpaper
@@ -156,6 +158,9 @@ fun SettingsScreen(
     val commandHistory by userPreferences.commandHistory.collectAsState(initial = emptyList())
     val notificationHistoryEnabled by userPreferences.notificationHistoryEnabled.collectAsState(initial = true)
     val drawerNotifiedFirst by userPreferences.drawerNotifiedFirst.collectAsState(initial = false)
+    val prayerTimesEnabled by userPreferences.prayerTimesEnabled.collectAsState(initial = false)
+    val prayerMethodPref by userPreferences.prayerMethod.collectAsState(initial = null)
+    val prayerAsrPref by userPreferences.prayerAsrSchool.collectAsState(initial = null)
     val showAllTodosPref by userPreferences.homeShowAllTodos.collectAsState(initial = false)
     val showAllNotesPref by userPreferences.homeShowAllNotes.collectAsState(initial = false)
     val homeSystemWidgets by userPreferences.homeSystemWidgets.collectAsState(initial = emptySet())
@@ -946,6 +951,55 @@ fun SettingsScreen(
                             )
                         }
                     )
+
+                    // Prayer times (own builds only; see PRAYER_TIMES in app/build.gradle.kts)
+                    if (com.zaryif.minimalos.BuildConfig.PRAYER_TIMES) {
+                        SettingsInsetDivider()
+
+                        SettingsItemRow(
+                            icon = Icons.Default.Schedule,
+                            title = "Prayer Times",
+                            subtitle = if (prayerTimesEnabled) "Next prayer under the clock, for your weather town" else "Off",
+                            trailingContent = {
+                                Switch(
+                                    checked = prayerTimesEnabled,
+                                    onCheckedChange = { scope.launch { userPreferences.setPrayerTimesEnabled(it) } },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = MinimalWhite,
+                                        checkedTrackColor = MinimalRed,
+                                        uncheckedThumbColor = MinimalGray,
+                                        uncheckedTrackColor = MinimalDarkCardBg
+                                    )
+                                )
+                            },
+                            onClick = { scope.launch { userPreferences.setPrayerTimesEnabled(!prayerTimesEnabled) } }
+                        )
+
+                        if (prayerTimesEnabled) {
+                            val method = com.zaryif.minimalos.domain.prayer.PrayerMethod.from(prayerMethodPref)
+                            val school = com.zaryif.minimalos.domain.prayer.AsrSchool.from(prayerAsrPref)
+                            SettingsInsetDivider()
+                            SettingsItemRow(
+                                icon = Icons.Default.Tune,
+                                title = "Calculation Method",
+                                subtitle = "${method.label} · tap to change",
+                                onClick = {
+                                    val all = com.zaryif.minimalos.domain.prayer.PrayerMethod.entries
+                                    scope.launch { userPreferences.setPrayerMethod(all[(method.ordinal + 1) % all.size].name) }
+                                }
+                            )
+                            SettingsInsetDivider()
+                            SettingsItemRow(
+                                icon = Icons.Default.Tune,
+                                title = "Asr Time",
+                                subtitle = "${school.label} · tap to change",
+                                onClick = {
+                                    val all = com.zaryif.minimalos.domain.prayer.AsrSchool.entries
+                                    scope.launch { userPreferences.setPrayerAsrSchool(all[(school.ordinal + 1) % all.size].name) }
+                                }
+                            )
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(20.dp))
             }
