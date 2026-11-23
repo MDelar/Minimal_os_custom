@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
@@ -25,6 +26,35 @@ enum class AiProvider(val displayName: String, val webUrl: String, val packageNa
 }
 
 class UserPreferences(private val context: Context) {
+
+    /** Every saved setting by name, for backups. */
+    suspend fun snapshot(): Map<String, Any> =
+        context.dataStore.data.first().asMap().mapKeys { it.key.name }
+
+    /**
+     * Replaces all settings with [values] (from a backup), keeping the current
+     * values of [keep] (settings that only make sense on this phone).
+     */
+    suspend fun replaceAll(values: Map<String, Any>, keep: Set<String>) {
+        context.dataStore.edit { prefs ->
+            val kept = prefs.asMap().filterKeys { it.name in keep }
+            prefs.clear()
+            @Suppress("UNCHECKED_CAST")
+            kept.forEach { (k, v) -> prefs[k as Preferences.Key<Any>] = v }
+            for ((name, v) in values) {
+                if (name in keep) continue
+                when (v) {
+                    is Boolean -> prefs[booleanPreferencesKey(name)] = v
+                    is Int -> prefs[intPreferencesKey(name)] = v
+                    is Long -> prefs[androidx.datastore.preferences.core.longPreferencesKey(name)] = v
+                    is Float -> prefs[androidx.datastore.preferences.core.floatPreferencesKey(name)] = v
+                    is Double -> prefs[androidx.datastore.preferences.core.doublePreferencesKey(name)] = v
+                    is String -> prefs[stringPreferencesKey(name)] = v
+                    is Set<*> -> prefs[stringSetPreferencesKey(name)] = v.map { it.toString() }.toSet()
+                }
+            }
+        }
+    }
 
     companion object {
         private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")

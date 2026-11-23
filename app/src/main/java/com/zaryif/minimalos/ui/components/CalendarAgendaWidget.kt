@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,7 +79,7 @@ fun MinimalHomeCalendarWidget(
     val context = LocalContext.current
     var hasPermission by remember { mutableStateOf(CalendarAgenda.hasPermission(context)) }
     var events by remember { mutableStateOf<List<AgendaEvent>>(emptyList()) }
-    var calendarCount by remember { mutableStateOf(-1) }
+    var calendarCount by remember { mutableIntStateOf(-1) }
     var readError by remember { mutableStateOf<String?>(null) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var loaded by remember { mutableStateOf(false) }
@@ -95,7 +96,7 @@ fun MinimalHomeCalendarWidget(
             hasPermission = CalendarAgenda.hasPermission(context)
             while (isActive && hasPermission) {
                 now = System.currentTimeMillis()
-                silencedUntil = com.zaryif.minimalos.domain.lessons.LessonSilencer.silencedUntil(context, now)
+                silencedUntil = com.zaryif.minimalos.domain.calendardnd.CalendarDnd.silencedUntil(context, now)
                 val result = withContext(Dispatchers.IO) {
                     CalendarAgenda.upcoming(context, limit = maxEvents, now = now)
                 }
@@ -153,7 +154,7 @@ fun MinimalHomeCalendarWidget(
                         .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
                 }
                 Text(
-                    // Silence during lessons is holding Do Not Disturb on
+                    // Calendar DND is holding Do Not Disturb on
                     text = if (quietTill != null) "silenced till $quietTill" else "open →",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,

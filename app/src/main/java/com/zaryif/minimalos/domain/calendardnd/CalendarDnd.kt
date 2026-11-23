@@ -1,4 +1,4 @@
-package com.zaryif.minimalos.domain.lessons
+package com.zaryif.minimalos.domain.calendardnd
 
 import android.Manifest
 import android.app.AlarmManager
@@ -13,21 +13,21 @@ import android.os.Build
 import android.provider.CalendarContract
 
 /**
- * Turns Do Not Disturb on while a lesson from the chosen calendars is under way
+ * Turns Do Not Disturb on while an event from the chosen calendars is under way
  * and off when it ends. Runs from an alarm at each start and end (plus a re-check
  * at least every 3 hours), so it works whether or not the launcher is open.
  *
- * It only undoes what it did: if Do Not Disturb was already on when a lesson
- * started, or you switch it off mid-lesson, it leaves it alone.
+ * It only undoes what it did: if Do Not Disturb was already on when an event
+ * started, or you switch it off part-way through, it leaves it alone.
  */
-object LessonSilencer {
-    private const val PREFS = "lesson_silencer"
+object CalendarDnd {
+    private const val PREFS = "calendar_dnd"
     private const val KEY_ENABLED = "enabled"
     private const val KEY_CALENDARS = "calendar_ids"
     private const val KEY_ACTIVE = "we_silenced"
     private const val KEY_UNTIL = "silenced_until"
     private const val KEY_HANDLED_UNTIL = "handled_until"
-    const val ACTION_SYNC = "com.zaryif.minimalos.LESSON_SYNC"
+    const val ACTION_SYNC = "com.zaryif.minimalos.CALENDAR_DND_SYNC"
 
     data class CalendarOption(val id: Long, val name: String, val account: String)
 
@@ -54,7 +54,7 @@ object LessonSilencer {
     private fun hasCalendarAccess(context: Context) =
         context.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
 
-    /** When the current lesson silence ends, if the launcher silenced the phone; else null. */
+    /** When the current quiet period ends, if the launcher turned DND on; else null. */
     fun silencedUntil(context: Context, now: Long = System.currentTimeMillis()): Long? {
         val p = prefs(context)
         val until = p.getLong(KEY_UNTIL, 0L)
@@ -80,13 +80,13 @@ object LessonSilencer {
         return list
     }
 
-    private fun events(context: Context, ids: Set<Long>, now: Long): List<LessonEvent> {
+    private fun events(context: Context, ids: Set<Long>, now: Long): List<DndEvent> {
         if (ids.isEmpty() || !hasCalendarAccess(context)) return emptyList()
         val uri = CalendarContract.Instances.CONTENT_URI.buildUpon().also {
             ContentUris.appendId(it, now - 12 * 60 * 60_000L)
             ContentUris.appendId(it, now + 24 * 60 * 60_000L)
         }.build()
-        val list = mutableListOf<LessonEvent>()
+        val list = mutableListOf<DndEvent>()
         try {
             context.contentResolver.query(
                 uri,
@@ -102,7 +102,7 @@ object LessonSilencer {
                 while (c.moveToNext()) {
                     if (c.getLong(0) !in ids || c.getInt(3) == 1) continue
                     if (!c.isNull(4) && c.getInt(4) == CalendarContract.Instances.STATUS_CANCELED) continue
-                    list += LessonEvent(c.getLong(1), c.getLong(2))
+                    list += DndEvent(c.getLong(1), c.getLong(2))
                 }
             }
         } catch (_: Exception) {}
@@ -125,21 +125,21 @@ object LessonSilencer {
             return
         }
 
-        val plan = LessonPlanner.plan(events(app, calendarIds(app), now), now)
-        val lessonEnd = plan.silenceUntil
-        if (lessonEnd != null) {
-            // Each lesson block is handled once: if you turn DND off mid-lesson, it stays off.
-            val handled = p.getLong(KEY_HANDLED_UNTIL, 0L) == lessonEnd
+        val plan = CalendarDndPlanner.plan(events(app, calendarIds(app), now), now)
+        val eventEnd = plan.silenceUntil
+        if (eventEnd != null) {
+            // Each block is handled once: if you turn DND off part-way through, it stays off.
+            val handled = p.getLong(KEY_HANDLED_UNTIL, 0L) == eventEnd
             if (!handled && canDnd) {
                 val alreadyQuiet = nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
                 if (!alreadyQuiet) nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
                 p.edit()
                     .putBoolean(KEY_ACTIVE, !alreadyQuiet)
-                    .putLong(KEY_UNTIL, lessonEnd)
-                    .putLong(KEY_HANDLED_UNTIL, lessonEnd)
+                    .putLong(KEY_UNTIL, eventEnd)
+                    .putLong(KEY_HANDLED_UNTIL, eventEnd)
                     .apply()
             } else if (weSilenced) {
-                p.edit().putLong(KEY_UNTIL, lessonEnd).apply()
+                p.edit().putLong(KEY_UNTIL, eventEnd).apply()
             }
         } else {
             if (weSilenced && canDnd) restore(nm)
@@ -157,7 +157,7 @@ object LessonSilencer {
 
     private fun alarmIntent(context: Context) = PendingIntent.getBroadcast(
         context, 4711,
-        Intent(context, LessonSilenceReceiver::class.java).setAction(ACTION_SYNC),
+        Intent(context, CalendarDndReceiver::class.java).setAction(ACTION_SYNC),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
@@ -180,12 +180,12 @@ object LessonSilencer {
     }
 }
 
-/** Lesson start/end alarms, plus boot and clock changes. */
-class LessonSilenceReceiver : BroadcastReceiver() {
+/** Event start/end alarms, plus boot and clock changes. */
+class CalendarDndReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val pending = goAsync()
         Thread {
-            try { LessonSilencer.sync(context) } finally { pending.finish() }
+            try { CalendarDnd.sync(context) } finally { pending.finish() }
         }.start()
     }
 }

@@ -3,7 +3,6 @@ package com.zaryif.minimalos.data.repository
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import com.zaryif.minimalos.domain.model.AppInfo
 
 class AppRepository(private val context: Context) {

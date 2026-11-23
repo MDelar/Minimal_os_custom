@@ -11,11 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -241,10 +237,10 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         appWidgetHost.startListening()
-        // Silence during lessons: catch timetable edits whenever you come home.
+        // Calendar DND: pick up calendar edits whenever you come home.
         val app = applicationContext
-        if (com.zaryif.minimalos.domain.lessons.LessonSilencer.isEnabled(app)) {
-            lifecycleScope.launch(Dispatchers.IO) { com.zaryif.minimalos.domain.lessons.LessonSilencer.sync(app) }
+        if (com.zaryif.minimalos.domain.calendardnd.CalendarDnd.isEnabled(app)) {
+            lifecycleScope.launch(Dispatchers.IO) { com.zaryif.minimalos.domain.calendardnd.CalendarDnd.sync(app) }
         }
     }
 

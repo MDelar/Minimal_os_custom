@@ -23,10 +23,9 @@ fun MinimalOSTheme(
         SideEffect {
             val window = (view.context as Activity).window
             // Match the window background to the theme so app-switch animations
-            // don't show a black frame behind non-black themes.
+            // don't show a black frame behind non-black themes. The app is edge to
+            // edge, so this also shows behind the transparent system bars.
             window.setBackgroundDrawable(ColorDrawable(currentActiveTheme.background.toArgb()))
-            window.statusBarColor = currentActiveTheme.background.toArgb()
-            window.navigationBarColor = currentActiveTheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = false
                 isAppearanceLightNavigationBars = false

@@ -5,7 +5,6 @@ import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.provider.CalendarContract
-import android.provider.AlarmClock
 import java.util.Calendar
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -13,7 +12,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.Launch
 import com.zaryif.minimalos.ui.components.MinimalAlarmTimePickerDialog
 import com.zaryif.minimalos.util.AlarmClockPermissionHelper
 import kotlinx.coroutines.delay
@@ -29,7 +27,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -63,7 +60,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,7 +76,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.zaryif.minimalos.data.repository.StorageRepository
 import com.zaryif.minimalos.domain.model.Note
 import com.zaryif.minimalos.domain.model.Todo
@@ -101,7 +96,6 @@ import com.zaryif.minimalos.ui.theme.AppleSanFranciscoFontFamily
 import com.zaryif.minimalos.ui.theme.MinimalWhite
 import com.zaryif.minimalos.ui.theme.MinimalOnAccent
 import com.zaryif.minimalos.util.AppStrings
-import androidx.compose.ui.window.Dialog
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

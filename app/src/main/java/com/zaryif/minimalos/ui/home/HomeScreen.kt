@@ -45,7 +45,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
@@ -104,7 +103,6 @@ import com.zaryif.minimalos.ui.components.MinimalQuickNoteBlackSpaceSheet
 import com.zaryif.minimalos.ui.theme.MinimalBlack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.zaryif.minimalos.ui.theme.MinimalCardBg
 import com.zaryif.minimalos.ui.theme.MinimalDarkCardBg
 import com.zaryif.minimalos.ui.theme.MinimalDarkGray
 import com.zaryif.minimalos.ui.theme.MinimalGray
@@ -113,7 +111,6 @@ import com.zaryif.minimalos.ui.theme.MinimalWhite
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
-import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
