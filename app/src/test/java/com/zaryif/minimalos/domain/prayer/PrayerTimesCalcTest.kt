@@ -48,11 +48,20 @@ class PrayerTimesCalcTest {
     }
 
     @Test
+    fun aStartedPrayerShowsForFifteenMinutesThenTheNext() {
+        val today = listOf(PrayerSlot("asr", at(14, 9)), PrayerSlot("maghrib", at(16, 1)))
+        val tomorrow = listOf(PrayerSlot("fajr", at(6, 8, LocalDate.of(2026, 11, 24))))
+        assertEquals("asr", PrayerTimesCalc.pickNext(today, tomorrow, now = at(14, 8)).name)
+        assertEquals("asr", PrayerTimesCalc.pickNext(today, tomorrow, now = at(14, 20)).name)
+        assertEquals("maghrib", PrayerTimesCalc.pickNext(today, tomorrow, now = at(14, 25)).name)
+    }
+
+    @Test
     fun afterIshaTheNextIsTomorrowsFajr() {
-        val today = listOf(PrayerSlot("fajr", 100), PrayerSlot("isha", 200))
-        val tomorrow = listOf(PrayerSlot("fajr", 300), PrayerSlot("isha", 400))
-        assertEquals(PrayerSlot("isha", 200), PrayerTimesCalc.pickNext(today, tomorrow, now = 150))
-        assertEquals(PrayerSlot("fajr", 300), PrayerTimesCalc.pickNext(today, tomorrow, now = 250))
+        val today = listOf(PrayerSlot("isha", at(17, 31)))
+        val tomorrow = listOf(PrayerSlot("fajr", at(6, 8, LocalDate.of(2026, 11, 24))))
+        assertEquals("isha", PrayerTimesCalc.pickNext(today, tomorrow, now = at(17, 40)).name)
+        assertEquals("fajr", PrayerTimesCalc.pickNext(today, tomorrow, now = at(18, 0)).name)
     }
 
     @Test
@@ -62,6 +71,16 @@ class PrayerTimesCalcTest {
         assertEquals("asr 14:05 · in 35m", PrayerTimesCalc.label(slot, at(13, 30), london))
         assertEquals("asr 14:05 · in 2h", PrayerTimesCalc.label(slot, at(12, 5), london))
         assertEquals("asr 14:05 · now", PrayerTimesCalc.label(slot, at(14, 5), london))
+        assertEquals("asr 14:05 · now", PrayerTimesCalc.label(slot, at(14, 12), london))
+    }
+
+    @Test
+    fun underAMinuteToGoIsInOneMinuteNotNow() {
+        // The bug: clock showing 14:08, asr at 14:09, label said "now".
+        val slot = PrayerSlot("asr", at(14, 9))
+        assertEquals("asr 14:09 · in 1m", PrayerTimesCalc.label(slot, at(14, 8) + 10_000L, london))
+        assertEquals("asr 14:09 · in 1m", PrayerTimesCalc.label(slot, at(14, 8) + 59_000L, london))
+        assertEquals("asr 14:09 · in 1h", PrayerTimesCalc.label(slot, at(13, 9) + 30_000L, london))
     }
 
     @Test
