@@ -15,6 +15,12 @@ jobs:
   build:
     name: Test and build signed APKs
     runs-on: ubuntu-latest
+    env:
+      # Maven Central sometimes answers GitHub's shared runners with "429 Too Many
+      # Requests"; retry downloads more times, backing off, instead of failing.
+      GRADLE_OPTS: >-
+        -Dorg.gradle.internal.repository.max.retries=8
+        -Dorg.gradle.internal.repository.initial.backoff=2000
 
     steps:
       - uses: actions/checkout@v5
