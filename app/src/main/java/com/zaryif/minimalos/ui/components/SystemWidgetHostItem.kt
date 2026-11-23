@@ -55,9 +55,12 @@ fun MinimalSystemWidgetHostItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val info = remember(widgetId) { appWidgetManager.getAppWidgetInfo(widgetId) }
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val label = remember(widgetId) {
+                    appWidgetManager.getAppWidgetInfo(widgetId)?.loadLabel(context.packageManager)
+                }
                 Text(
-                    text = info?.label ?: "App Widget",
+                    text = label ?: "App Widget",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = MinimalGray

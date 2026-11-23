@@ -6,11 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.provider.AlarmClock
 import android.provider.CalendarContract
 import androidx.core.content.ContextCompat
 import com.zaryif.minimalos.util.AlarmClockPermissionHelper
-import com.zaryif.minimalos.data.preferences.AiProvider
 import com.zaryif.minimalos.data.preferences.UserPreferences
 import com.zaryif.minimalos.data.repository.AppRepository
 import com.zaryif.minimalos.data.repository.ContactRepository
@@ -27,7 +25,6 @@ import kotlinx.coroutines.runBlocking
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
-import java.util.regex.Pattern
 
 sealed class CommandResult {
     data class Success(val message: String) : CommandResult()

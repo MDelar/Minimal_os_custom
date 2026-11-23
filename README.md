@@ -14,8 +14,8 @@ My personal fork of [Minimal OS](https://github.com/zaryif/Minimal_os), a text-f
 - **Calendar:** your next three events as a text list (`14:00  maths 10A`, `tmrw 08:50  form time`). Tap one to open it, or long-press the card for diagnostics if events are missing
 - **Next prayer:** an optional line under the clock (`asr 14:05 · in 1h 20m`) for your weather town, worked out on the phone. Choose the calculation method and Asr time in Settings › Home › Prayer Times
 
-### Silence during lessons
-- Optional: puts the phone on Do Not Disturb while a lesson from your chosen timetable calendar is on, and turns it off at the end. Back-to-back lessons count as one, breaks aren't silenced, and it never overrides Do Not Disturb you set yourself. Settings › System › Silence During Lessons
+### Calendar DND
+- Optional: turns Do Not Disturb on while an event from the calendars you choose is on, such as a school or work timetable, and off when it ends. Back-to-back events count as one, gaps aren't silenced, and it never overrides Do Not Disturb you set yourself. Settings › System › Calendar DND
 
 ### App drawer
 - **Notification counts:** apps with notifications show a small count in the theme colour
@@ -24,6 +24,9 @@ My personal fork of [Minimal OS](https://github.com/zaryif/Minimal_os), a text-f
 ### Keyboard phones
 - **Type anywhere:** on the home screen, start typing on the keyboard and the command bar opens with what you typed
 - **Home key:** the keyboard's Home key and the home gesture always return to the home screen
+
+### Backup
+- Save everything you've set up (settings, theme, widgets, pinned apps, commands, notes and to-dos) to a file on the phone or straight to Google Drive, and restore it after a reinstall or on a new phone. Settings › Backup & Restore
 
 ### Speed and battery
 - Clocks and countdowns only update while they're on screen, once a minute where seconds aren't shown

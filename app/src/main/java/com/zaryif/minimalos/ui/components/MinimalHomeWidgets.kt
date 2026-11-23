@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.Icon
@@ -51,12 +50,9 @@ import com.zaryif.minimalos.ui.theme.MinimalDarkGray
 import com.zaryif.minimalos.ui.theme.MinimalGray
 import com.zaryif.minimalos.ui.theme.MinimalRed
 import com.zaryif.minimalos.ui.theme.MinimalWhite
-import com.zaryif.minimalos.ui.theme.MinimalOnAccent
 import com.zaryif.minimalos.ui.theme.AppleSanFranciscoFontFamily
 import com.zaryif.minimalos.domain.timer.PomodoroTimerManager
 import com.zaryif.minimalos.util.AppStrings
-import android.app.AlarmManager
-import android.content.Context
 import androidx.compose.ui.platform.LocalContext
 import com.zaryif.minimalos.util.AlarmClockPermissionHelper
 import androidx.compose.runtime.LaunchedEffect

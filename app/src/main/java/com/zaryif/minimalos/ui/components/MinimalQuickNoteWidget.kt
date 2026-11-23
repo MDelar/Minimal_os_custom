@@ -1,6 +1,5 @@
 package com.zaryif.minimalos.ui.components
 
-import android.content.Context
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background

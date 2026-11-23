@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.zaryif.minimalos.MainActivity
 
@@ -23,19 +22,17 @@ object QuickNoteManager {
             return
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Quick Note",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Pinned Quick Note in status bar"
-                setShowBadge(false)
-                enableLights(false)
-                enableVibration(false)
-            }
-            notificationManager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Quick Note",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Pinned Quick Note in status bar"
+            setShowBadge(false)
+            enableLights(false)
+            enableVibration(false)
         }
+        notificationManager.createNotificationChannel(channel)
 
         // Tap notification to open Minimal OS straight into Quick Note
         val openIntent = Intent(context, MainActivity::class.java).apply {
@@ -46,7 +43,7 @@ object QuickNoteManager {
             context,
             1001,
             openIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         // Clear button action
@@ -57,7 +54,7 @@ object QuickNoteManager {
             context,
             1002,
             clearIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val firstLine = trimmed.lineSequence().firstOrNull()?.trim() ?: trimmed

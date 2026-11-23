@@ -43,7 +43,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -68,6 +67,9 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Tune
@@ -94,7 +96,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import com.zaryif.minimalos.R
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -106,10 +107,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.window.DialogProperties
 import com.zaryif.minimalos.ui.components.CommandHelpDialog
-import com.zaryif.minimalos.ui.onboarding.OnboardingScreen
-import com.zaryif.minimalos.data.preferences.AiProvider
 import com.zaryif.minimalos.data.preferences.UserPreferences
 import com.zaryif.minimalos.domain.model.AppInfo
 import com.zaryif.minimalos.ui.theme.AppleSanFranciscoFontFamily
@@ -161,57 +159,121 @@ fun SettingsScreen(
     val notificationHistoryEnabled by userPreferences.notificationHistoryEnabled.collectAsState(initial = true)
     val drawerNotifiedFirst by userPreferences.drawerNotifiedFirst.collectAsState(initial = false)
 
-    // Silence during lessons (state lives in LessonSilencer's own prefs so its alarms can read it)
-    var lessonEnabled by remember { mutableStateOf(com.zaryif.minimalos.domain.lessons.LessonSilencer.isEnabled(context)) }
-    var lessonDndAccess by remember { mutableStateOf(com.zaryif.minimalos.domain.lessons.LessonSilencer.hasDndAccess(context)) }
-    var lessonCalendarAccess by remember {
+    // Backup & restore
+    fun backupFileName() = "minimal-os-backup-" + SimpleDateFormat("yyyy-MM-dd", Locale.UK).format(Date()) + ".json"
+    var pendingRestore by remember { mutableStateOf<com.zaryif.minimalos.util.SettingsBackup.Parsed?>(null) }
+    val saveBackupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
+        if (uri != null) scope.launch {
+            val ok = withContext(Dispatchers.IO) {
+                try {
+                    val text = com.zaryif.minimalos.util.SettingsBackup.export(context)
+                    context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray(Charsets.UTF_8)) } != null
+                } catch (_: Exception) { false }
+            }
+            android.widget.Toast.makeText(context, if (ok) "Backup saved" else "Couldn't save the backup", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+    val openBackupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) scope.launch {
+            val parsed = withContext(Dispatchers.IO) {
+                try {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
+                        ?.let { com.zaryif.minimalos.util.SettingsBackup.parse(it) }
+                } catch (_: Exception) { null }
+            }
+            if (parsed == null) android.widget.Toast.makeText(context, "That isn't a Minimal OS backup", android.widget.Toast.LENGTH_SHORT).show()
+            else pendingRestore = parsed
+        }
+    }
+    pendingRestore?.let { backup ->
+        val made = if (backup.createdAt > 0) SimpleDateFormat("d MMM yyyy, HH:mm", Locale.UK).format(Date(backup.createdAt)) else "an unknown date"
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingRestore = null },
+            containerColor = MinimalCardBg,
+            title = { Text("Restore backup?", color = MinimalWhite) },
+            text = {
+                Text(
+                    "This replaces your current settings, notes and to-dos with the backup from $made. The launcher restarts afterwards.",
+                    color = MinimalGray
+                )
+            },
+            confirmButton = {
+                Text(
+                    "RESTORE", color = MinimalRed, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable {
+                        pendingRestore = null
+                        scope.launch {
+                            withContext(Dispatchers.IO) { com.zaryif.minimalos.util.SettingsBackup.restore(context, backup) }
+                            // Restart so everything reloads from the restored settings.
+                            context.startActivity(
+                                android.content.Intent(context, com.zaryif.minimalos.MainActivity::class.java)
+                                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                            )
+                            Runtime.getRuntime().exit(0)
+                        }
+                    }.padding(8.dp)
+                )
+            },
+            dismissButton = {
+                Text(
+                    "CANCEL", color = MinimalGray, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable { pendingRestore = null }.padding(8.dp)
+                )
+            }
+        )
+    }
+
+    // Calendar DND (state lives in CalendarDnd's own prefs so its alarms can read it)
+    var dndEnabled by remember { mutableStateOf(com.zaryif.minimalos.domain.calendardnd.CalendarDnd.isEnabled(context)) }
+    var dndAccess by remember { mutableStateOf(com.zaryif.minimalos.domain.calendardnd.CalendarDnd.hasDndAccess(context)) }
+    var dndCalendarAccess by remember {
         mutableStateOf(context.checkSelfPermission(android.Manifest.permission.READ_CALENDAR) == android.content.pm.PackageManager.PERMISSION_GRANTED)
     }
-    var lessonCalendarIds by remember { mutableStateOf(com.zaryif.minimalos.domain.lessons.LessonSilencer.calendarIds(context)) }
-    var showLessonCalendars by remember { mutableStateOf(false) }
-    val lessonCalendarPermission = rememberLauncherForActivityResult(
+    var dndCalendarIds by remember { mutableStateOf(com.zaryif.minimalos.domain.calendardnd.CalendarDnd.calendarIds(context)) }
+    var showDndCalendars by remember { mutableStateOf(false) }
+    val dndCalendarPermission = rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { granted ->
-        lessonCalendarAccess = granted
-        if (granted && lessonCalendarIds.isEmpty()) showLessonCalendars = true
+        dndCalendarAccess = granted
+        if (granted && dndCalendarIds.isEmpty()) showDndCalendars = true
     }
-    fun requestLessonAccess() {
+    fun requestDndAccess() {
         when {
-            !lessonCalendarAccess -> lessonCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR)
-            !lessonDndAccess -> try {
+            !dndCalendarAccess -> dndCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR)
+            !dndAccess -> try {
                 context.startActivity(
                     android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
                         .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                 )
             } catch (_: Exception) {}
-            lessonCalendarIds.isEmpty() -> showLessonCalendars = true
+            dndCalendarIds.isEmpty() -> showDndCalendars = true
         }
     }
     // Coming back from the Do Not Disturb access screen: pick up the new state.
-    val lessonLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    androidx.compose.runtime.DisposableEffect(lessonLifecycle) {
+    val dndLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(dndLifecycle) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                val had = lessonDndAccess
-                lessonDndAccess = com.zaryif.minimalos.domain.lessons.LessonSilencer.hasDndAccess(context)
-                if (!had && lessonDndAccess && lessonEnabled) {
-                    if (lessonCalendarIds.isEmpty()) showLessonCalendars = true
-                    Thread { com.zaryif.minimalos.domain.lessons.LessonSilencer.sync(context) }.start()
+                val had = dndAccess
+                dndAccess = com.zaryif.minimalos.domain.calendardnd.CalendarDnd.hasDndAccess(context)
+                if (!had && dndAccess && dndEnabled) {
+                    if (dndCalendarIds.isEmpty()) showDndCalendars = true
+                    Thread { com.zaryif.minimalos.domain.calendardnd.CalendarDnd.sync(context) }.start()
                 }
             }
         }
-        lessonLifecycle.lifecycle.addObserver(observer)
-        onDispose { lessonLifecycle.lifecycle.removeObserver(observer) }
+        dndLifecycle.lifecycle.addObserver(observer)
+        onDispose { dndLifecycle.lifecycle.removeObserver(observer) }
     }
-    if (showLessonCalendars) {
-        com.zaryif.minimalos.ui.settings.LessonCalendarsDialog(
-            options = remember { com.zaryif.minimalos.domain.lessons.LessonSilencer.calendars(context) },
-            selected = lessonCalendarIds,
-            onDismiss = { showLessonCalendars = false },
+    if (showDndCalendars) {
+        com.zaryif.minimalos.ui.settings.DndCalendarsDialog(
+            options = remember { com.zaryif.minimalos.domain.calendardnd.CalendarDnd.calendars(context) },
+            selected = dndCalendarIds,
+            onDismiss = { showDndCalendars = false },
             onSave = { ids ->
-                lessonCalendarIds = ids
-                showLessonCalendars = false
-                Thread { com.zaryif.minimalos.domain.lessons.LessonSilencer.setCalendarIds(context, ids) }.start()
+                dndCalendarIds = ids
+                showDndCalendars = false
+                Thread { com.zaryif.minimalos.domain.calendardnd.CalendarDnd.setCalendarIds(context, ids) }.start()
             }
         )
     }
@@ -1600,24 +1662,24 @@ fun SettingsScreen(
 
                     SettingsInsetDivider()
 
-                    // Item 3a: silence during lessons (Do Not Disturb from a timetable calendar)
+                    // Item 3a: Calendar DND (Do Not Disturb during events in chosen calendars)
                     SettingsItemRow(
                         icon = Icons.Default.NotificationsOff,
-                        title = "Silence During Lessons",
+                        title = "Calendar DND",
                         subtitle = when {
-                            !lessonEnabled -> "Do Not Disturb while a lesson is on"
-                            !lessonDndAccess -> "Tap to allow Do Not Disturb access"
-                            !lessonCalendarAccess -> "Tap to allow calendar access"
-                            lessonCalendarIds.isEmpty() -> "Choose your timetable calendar below"
-                            else -> "On · ${lessonCalendarIds.size} calendar${if (lessonCalendarIds.size == 1) "" else "s"}"
+                            !dndEnabled -> "Do Not Disturb during events in chosen calendars"
+                            !dndAccess -> "Tap to allow Do Not Disturb access"
+                            !dndCalendarAccess -> "Tap to allow calendar access"
+                            dndCalendarIds.isEmpty() -> "Choose your calendars below"
+                            else -> "On · ${dndCalendarIds.size} calendar${if (dndCalendarIds.size == 1) "" else "s"}"
                         },
                         trailingContent = {
                             Switch(
-                                checked = lessonEnabled,
+                                checked = dndEnabled,
                                 onCheckedChange = { on ->
-                                    lessonEnabled = on
-                                    com.zaryif.minimalos.domain.lessons.LessonSilencer.setEnabled(context, on)
-                                    if (on) requestLessonAccess()
+                                    dndEnabled = on
+                                    com.zaryif.minimalos.domain.calendardnd.CalendarDnd.setEnabled(context, on)
+                                    if (on) requestDndAccess()
                                 },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = MinimalOnAccent,
@@ -1628,25 +1690,25 @@ fun SettingsScreen(
                             )
                         },
                         onClick = {
-                            if (lessonEnabled && (!lessonDndAccess || !lessonCalendarAccess)) requestLessonAccess()
+                            if (dndEnabled && (!dndAccess || !dndCalendarAccess)) requestDndAccess()
                             else {
-                                lessonEnabled = !lessonEnabled
-                                com.zaryif.minimalos.domain.lessons.LessonSilencer.setEnabled(context, lessonEnabled)
-                                if (lessonEnabled) requestLessonAccess()
+                                dndEnabled = !dndEnabled
+                                com.zaryif.minimalos.domain.calendardnd.CalendarDnd.setEnabled(context, dndEnabled)
+                                if (dndEnabled) requestDndAccess()
                             }
                         }
                     )
 
-                    if (lessonEnabled) {
+                    if (dndEnabled) {
                         SettingsInsetDivider()
                         SettingsItemRow(
                             icon = Icons.Default.CalendarMonth,
-                            title = "Lesson Calendars",
-                            subtitle = if (lessonCalendarIds.isEmpty()) "None chosen" else
-                                com.zaryif.minimalos.domain.lessons.LessonSilencer.calendars(context)
-                                    .filter { it.id in lessonCalendarIds }.joinToString { it.name }.ifEmpty { "None chosen" },
+                            title = "DND Calendars",
+                            subtitle = if (dndCalendarIds.isEmpty()) "None chosen" else
+                                com.zaryif.minimalos.domain.calendardnd.CalendarDnd.calendars(context)
+                                    .filter { it.id in dndCalendarIds }.joinToString { it.name }.ifEmpty { "None chosen" },
                             onClick = {
-                                if (lessonCalendarAccess) showLessonCalendars = true else requestLessonAccess()
+                                if (dndCalendarAccess) showDndCalendars = true else requestDndAccess()
                             }
                         )
                     }
@@ -1732,6 +1794,60 @@ fun SettingsScreen(
             // =========================================================
             val aboutKeywords = listOf("about", "version", "release", "developer", "author", "delar", "mohammed", "zarif", "original", "credit", "source", "onboarding", "guide", "docs", "license")
             if (q.isEmpty() || aboutKeywords.any { it.contains(q) || q.contains(it) }) {
+                SettingsSectionHeader(title = "BACKUP & RESTORE")
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SettingsGroupCard {
+                    SettingsItemRow(
+                        icon = Icons.Default.Save,
+                        title = "Save Backup to Phone",
+                        subtitle = "All your settings, notes and to-dos in one file",
+                        onClick = { saveBackupLauncher.launch(backupFileName()) }
+                    )
+                    SettingsInsetDivider()
+                    SettingsItemRow(
+                        icon = Icons.Default.CloudUpload,
+                        title = "Upload Backup to Google Drive",
+                        subtitle = "Opens Drive's save screen",
+                        onClick = {
+                            scope.launch {
+                                try {
+                                    val text = withContext(Dispatchers.IO) { com.zaryif.minimalos.util.SettingsBackup.export(context) }
+                                    val dir = java.io.File(context.cacheDir, "backups").apply { mkdirs() }
+                                    dir.listFiles()?.forEach { it.delete() }
+                                    val file = java.io.File(dir, backupFileName())
+                                    withContext(Dispatchers.IO) { file.writeText(text) }
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+                                    val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+                                        .setType("application/json")
+                                        .putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                        .putExtra(android.content.Intent.EXTRA_TITLE, file.name)
+                                        .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    try {
+                                        context.startActivity(android.content.Intent(send).setPackage("com.google.android.apps.docs"))
+                                    } catch (_: android.content.ActivityNotFoundException) {
+                                        // No Drive app: let them pick where to send it.
+                                        context.startActivity(
+                                            android.content.Intent.createChooser(send, "Save backup to…")
+                                                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        )
+                                    }
+                                } catch (e: Exception) {
+                                    android.widget.Toast.makeText(context, "Couldn't make the backup", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    )
+                    SettingsInsetDivider()
+                    SettingsItemRow(
+                        icon = Icons.Default.Restore,
+                        title = "Restore Backup",
+                        subtitle = "From your phone or Google Drive",
+                        onClick = { openBackupLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*")) }
+                    )
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+
                 SettingsSectionHeader(title = AppStrings.settingsSecAbout)
                 Spacer(modifier = Modifier.height(8.dp))
 

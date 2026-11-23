@@ -31,17 +31,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.zaryif.minimalos.domain.lessons.LessonSilencer
+import com.zaryif.minimalos.domain.calendardnd.CalendarDnd
 import com.zaryif.minimalos.ui.theme.MinimalCardBg
 import com.zaryif.minimalos.ui.theme.MinimalDarkGray
 import com.zaryif.minimalos.ui.theme.MinimalGray
 import com.zaryif.minimalos.ui.theme.MinimalRed
 import com.zaryif.minimalos.ui.theme.MinimalWhite
 
-/** Pick which calendars hold your lessons (e.g. the ICSx⁵ timetable). */
+/** Pick which calendars' events turn on Do Not Disturb (e.g. a work timetable). */
 @Composable
-fun LessonCalendarsDialog(
-    options: List<LessonSilencer.CalendarOption>,
+fun DndCalendarsDialog(
+    options: List<CalendarDnd.CalendarOption>,
     selected: Set<Long>,
     onDismiss: () -> Unit,
     onSave: (Set<Long>) -> Unit
@@ -56,7 +56,7 @@ fun LessonCalendarsDialog(
                 .border(1.dp, MinimalDarkGray, RoundedCornerShape(14.dp))
                 .padding(16.dp)
         ) {
-            Text("Lesson calendars", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MinimalWhite)
+            Text("DND calendars", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MinimalWhite)
             Spacer(Modifier.height(4.dp))
             Text(
                 "The phone goes on Do Not Disturb while any timed event in these is on. All-day events are ignored.",
