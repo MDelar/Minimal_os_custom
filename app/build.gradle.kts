@@ -53,7 +53,8 @@ android {
             // R8: drops unused code (most of the icon library) and optimises the rest.
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            // Signed when a key is available (locally or in CI); otherwise unsigned, e.g. PRs from forks.
+            signingConfig = signingConfigs.getByName("release").takeIf { it.storeFile != null }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
