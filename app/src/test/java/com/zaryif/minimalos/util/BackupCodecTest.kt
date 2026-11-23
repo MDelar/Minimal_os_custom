@@ -34,10 +34,12 @@ class BackupCodecTest {
     fun parseRejectsFilesThatAreNotBackups() {
         assertNull(SettingsBackup.parse("hello"))
         assertNull(SettingsBackup.parse("""{"format":"something-else","version":1,"stores":{}}"""))
-        assertNull(SettingsBackup.parse("""{"format":"minimal-os-custom-backup","version":99,"stores":{}}"""))
+        assertNull(SettingsBackup.parse("""{"format":"tilde-launcher-backup","version":99,"stores":{}}"""))
         val ok = SettingsBackup.parse(
-            """{"format":"minimal-os-custom-backup","version":1,"createdAt":5,"stores":{"settings":{"a":{"t":"b","v":true}}}}"""
+            """{"format":"tilde-launcher-backup","version":1,"createdAt":5,"stores":{"settings":{"a":{"t":"b","v":true}}}}"""
         )
         assertTrue(ok != null && ok.createdAt == 5L && ok.settingsCount == 1)
+        // Backups saved before the rename still restore.
+        assertTrue(SettingsBackup.parse("""{"format":"minimal-os-custom-backup","version":1,"stores":{}}""") != null)
     }
 }

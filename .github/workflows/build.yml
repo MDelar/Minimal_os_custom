@@ -45,9 +45,9 @@ jobs:
             -d .github/signing/signing.tgz.gpg | tar -xzf -
           test -f keystore.properties && test -f minimalos-release.jks
 
-      # e.g. MinimalOS-v2.1.0 for a tag, MinimalOS-main for main, MinimalOS-32-merge for a PR
+      # e.g. Tilde-v2.1.0 for a tag, Tilde-main for main, Tilde-32-merge for a PR
       - name: Name the APKs
-        run: echo "APK_NAME=MinimalOS-${GITHUB_REF_NAME//\//-}" >> "$GITHUB_ENV"
+        run: echo "APK_NAME=Tilde-${GITHUB_REF_NAME//\//-}" >> "$GITHUB_ENV"
 
       - name: Unit tests
         run: ./gradlew :app:testReleaseUnitTest --stacktrace

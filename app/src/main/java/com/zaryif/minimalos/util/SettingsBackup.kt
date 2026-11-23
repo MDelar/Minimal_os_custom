@@ -12,7 +12,11 @@ import org.json.JSONObject
  * ({"t":"b","v":true}) so a restore writes exactly what was saved.
  */
 object BackupCodec {
-    const val FORMAT = "minimal-os-custom-backup"
+    const val FORMAT = "tilde-launcher-backup"
+    /** Backups saved before the rename to Tilde Launcher. */
+    private const val FORMAT_BEFORE_RENAME = "minimal-os-custom-backup"
+
+    fun isBackupFormat(id: String) = id == FORMAT || id == FORMAT_BEFORE_RENAME
     const val VERSION = 1
 
     fun encode(values: Map<String, Any?>): JSONObject {
@@ -91,7 +95,7 @@ object SettingsBackup {
     /** Checks the file is a launcher backup. Returns null if it isn't. */
     fun parse(text: String): Parsed? = try {
         val json = JSONObject(text)
-        if (json.optString("format") != BackupCodec.FORMAT || json.optInt("version") > BackupCodec.VERSION) null
+        if (!BackupCodec.isBackupFormat(json.optString("format")) || json.optInt("version") > BackupCodec.VERSION) null
         else {
             val stores = json.getJSONObject("stores")
             Parsed(json.optLong("createdAt"), stores.optJSONObject("settings")?.length() ?: 0, json)

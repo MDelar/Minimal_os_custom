@@ -25,7 +25,7 @@ object NotificationExporter {
 
         val fullText = if (forAssistant) {
             """
-            Please analyze and summarize my day-wise notification log from Minimal OS:
+            Please analyze and summarize my day-wise notification log from Tilde Launcher:
             - Group key insights day by day (Day of week, Date, and Time)
             - Highlight any urgent tasks, important messages, or missed calls that require action
             - Group related alerts by app or topic
@@ -65,7 +65,7 @@ object NotificationExporter {
             )
 
             val textSnippet = if (forAssistant) {
-                "Summarize my recent notifications from Minimal OS:\n\n${file.readText()}"
+                "Summarize my recent notifications from Tilde Launcher:\n\n${file.readText()}"
             } else {
                 file.readText()
             }
@@ -74,7 +74,7 @@ object NotificationExporter {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_STREAM, fileUri)
                 putExtra(Intent.EXTRA_TEXT, textSnippet)
-                putExtra(Intent.EXTRA_SUBJECT, if (forAssistant) "AI Summary of Notifications" else "Minimal OS Notification Log")
+                putExtra(Intent.EXTRA_SUBJECT, if (forAssistant) "AI Summary of Notifications" else "Tilde Launcher Notification Log")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }

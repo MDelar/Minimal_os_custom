@@ -911,7 +911,7 @@ fun HomeScreen(
             }
         }
 
-        // Minimal OS Pop Banner (Top aligned)
+        // Pop banner (top aligned)
         MinimalNotificationBanner(
             message = notificationMessage,
             modifier = Modifier.align(Alignment.TopCenter)

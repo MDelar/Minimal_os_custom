@@ -1,4 +1,4 @@
-# ProGuard rules for Minimal OS Launcher
+# ProGuard rules for Tilde Launcher
 -keepattributes *Annotation*
 -keepattributes SourceFile,LineNumberTable
 

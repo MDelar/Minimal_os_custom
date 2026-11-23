@@ -34,7 +34,7 @@ object QuickNoteManager {
         }
         notificationManager.createNotificationChannel(channel)
 
-        // Tap notification to open Minimal OS straight into Quick Note
+        // Tap notification to open the launcher straight into Quick Note
         val openIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_OPEN_QUICK_NOTE, true)

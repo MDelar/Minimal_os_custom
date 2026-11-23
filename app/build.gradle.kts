@@ -19,8 +19,8 @@ android {
         buildConfigField("boolean", "PRAYER_TIMES", providers.gradleProperty("prayerTimes").orElse("true").get())
         minSdk = 26
         targetSdk = 36
-        versionCode = 33
-        versionName = "2.0.2"
+        versionCode = 34
+        versionName = "2.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

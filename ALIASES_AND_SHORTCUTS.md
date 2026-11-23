@@ -1,6 +1,6 @@
-# Minimal OS: Aliases and Shortcuts Directory
+# Tilde: Aliases and Shortcuts Directory
 
-A comprehensive reference directory of 120+ ready-to-use custom aliases, Android system settings actions, web query templates, app launch shortcuts, and command macros for Minimal OS Launcher.
+A comprehensive reference directory of 120+ ready-to-use custom aliases, Android system settings actions, web query templates, app launch shortcuts, and command macros for Tilde Launcher.
 
 ---
 
@@ -24,26 +24,26 @@ A comprehensive reference directory of 120+ ready-to-use custom aliases, Android
    - [Category E: Accessibility and Input Devices (10)](#category-e-accessibility-and-input-devices)
    - [Category F: Web Search and Query Engines (25)](#category-f-web-search-and-query-engines)
    - [Category G: App Launch and Package Shortcuts (15)](#category-g-app-launch-and-package-shortcuts)
-   - [Category H: Minimal OS Command Macros (15)](#category-h-minimal-os-command-macros)
+   - [Category H: Tilde Command Macros (15)](#category-h-tilde-command-macros)
 6. [Troubleshooting and OEM Compatibility](#6-troubleshooting-and-oem-compatibility)
 
 ---
 
 ## 1. Overview
 
-Minimal OS is built around intentional, keyboard-driven navigation. Instead of swiping through multi-layered app drawers or digging through nested system settings pages, the **Minimal OS Command Bar** allows users to define custom shorthand keywords called **aliases**.
+Tilde is built around intentional, keyboard-driven navigation. Instead of swiping through multi-layered app drawers or digging through nested system settings pages, the **Tilde Command Bar** allows users to define custom shorthand keywords called **aliases**.
 
 An alias maps a short trigger keyword (such as `wifi`, `gh`, `wa`, `pomo50`) to:
 - A native **Android System Settings Intent** (e.g., `android.settings.WIFI_SETTINGS`).
 - A dynamic **Web Search Template** with argument expansion (e.g., `https://github.com/search?q={query}`).
 - An **Installed App** via package name or label (e.g., `com.termux`).
-- A **Minimal OS Command Macro** (e.g., `pomo 25`, `timer 10m`, `alarm 07:00`, `- buy milk`).
+- A **Tilde Command Macro** (e.g., `pomo 25`, `timer 10m`, `alarm 07:00`, `- buy milk`).
 
 ---
 
 ## 2. How to Create and Manage Aliases
 
-Minimal OS provides three distinct ways to configure aliases depending on your preferred workflow.
+Tilde provides three distinct ways to configure aliases depending on your preferred workflow.
 
 ### Method 1: Direct Command Bar (CLI)
 
@@ -102,7 +102,7 @@ You can create, inspect, and delete aliases directly in the main Command Bar on 
 
 ## 3. Alias Execution Engine Architecture
 
-When an alias is typed into the Command Bar, Minimal OS evaluates it in `ExecuteCommandUseCase.kt` according to the following order of precedence:
+When an alias is typed into the Command Bar, Tilde evaluates it in `ExecuteCommandUseCase.kt` according to the following order of precedence:
 
 ```
 [Raw User Input]
@@ -118,7 +118,7 @@ When an alias is typed into the Command Bar, Minimal OS evaluates it in `Execute
        │   └─► If URL does not contain "{query}", append arguments or open URL.
        │
        ├─► Target starts with a launcher command trigger ('-', '!', 'pomo', 'timer', etc.)
-       │   └─► Re-evaluate recursively as a native Minimal OS command.
+       │   └─► Re-evaluate recursively as a native Tilde command.
        │
        ├─► Target matches an installed Android Package Name or App Label
        │   └─► Launch app via PackageManager.getLaunchIntentForPackage()
@@ -138,10 +138,10 @@ Android system settings are exposed as public `Intent` action strings defined in
   - `android.provider.Settings` Reference: [https://developer.android.com/reference/android/provider/Settings](https://developer.android.com/reference/android/provider/Settings)
   - General Intent Actions Reference: [https://developer.android.com/reference/android/content/Intent](https://developer.android.com/reference/android/content/Intent)
 
-*How to convert Android documentation constants to Minimal OS aliases*:
-In Android documentation, constants are written as `Settings.ACTION_WIFI_SETTINGS`. The actual string value is `android.settings.WIFI_SETTINGS`. In Minimal OS, you can provide either:
+*How to convert Android documentation constants to Tilde aliases*:
+In Android documentation, constants are written as `Settings.ACTION_WIFI_SETTINGS`. The actual string value is `android.settings.WIFI_SETTINGS`. In Tilde, you can provide either:
 - The standard string: `android.settings.WIFI_SETTINGS`
-- The provider format: `android.provider.Settings.ACTION_WIFI_SETTINGS` (Minimal OS automatically normalizes this prefix).
+- The provider format: `android.provider.Settings.ACTION_WIFI_SETTINGS` (Tilde automatically normalizes this prefix).
 
 ### Where to Find App Package IDs
 
@@ -169,8 +169,8 @@ To find the exact package ID for any app:
    pm list packages | grep -i obsidian
    ```
 
-4. **Minimal OS Command Bar**:
-   Typing the app label (e.g. `Spotify`) into the alias target works directly because Minimal OS resolves app labels via `PackageManager`. Using the package ID (`com.spotify.music`) is even faster and guarantees 100% deterministic matching.
+4. **Tilde Command Bar**:
+   Typing the app label (e.g. `Spotify`) into the alias target works directly because Tilde resolves app labels via `PackageManager`. Using the package ID (`com.spotify.music`) is even faster and guarantees 100% deterministic matching.
 
 ### Where to Find Web Search URL Templates
 
@@ -182,13 +182,13 @@ Web services that accept query strings via `GET` requests can be turned into ins
   3. Look at your browser address bar.
   4. Replace `TEST` with `{query}`.
   - *Example*: Searching `TEST` on GitHub yields `https://github.com/search?q=TEST`.
-  - *Minimal OS Alias*: `alias gh = https://github.com/search?q={query}`.
+  - *Tilde Alias*: `alias gh = https://github.com/search?q={query}`.
 
 ---
 
 ## 5. Directory of 120+ Aliases and Shortcuts
 
-Below is an extensive collection of tested shortcuts ready to be pasted into Minimal OS.
+Below is an extensive collection of tested shortcuts ready to be pasted into Tilde.
 
 ---
 
@@ -270,7 +270,7 @@ Below is an extensive collection of tested shortcuts ready to be pasted into Min
 | `alias manageapps = android.settings.MANAGE_APPLICATIONS_SETTINGS` | `android.settings.MANAGE_APPLICATIONS_SETTINGS` | Installed third-party application list |
 | `alias dev = android.settings.APPLICATION_DEVELOPMENT_SETTINGS` | `android.settings.APPLICATION_DEVELOPMENT_SETTINGS` | Developer options (USB debugging, animation scales, ADB) |
 | `alias defaults = android.settings.MANAGE_DEFAULT_APPS_SETTINGS` | `android.settings.MANAGE_DEFAULT_APPS_SETTINGS` | Configure default browser, phone, SMS, and assistant apps |
-| `alias home = android.settings.HOME_SETTINGS` | `android.settings.HOME_SETTINGS` | Select default home launcher (set Minimal OS as default) |
+| `alias home = android.settings.HOME_SETTINGS` | `android.settings.HOME_SETTINGS` | Select default home launcher (set Tilde as default) |
 | `alias unknown = android.settings.MANAGE_UNKNOWN_APP_SOURCES` | `android.settings.MANAGE_UNKNOWN_APP_SOURCES` | Authorize APK sideloading per application |
 | `alias overlay = android.settings.MANAGE_OVERLAY_PERMISSION` | `android.settings.MANAGE_OVERLAY_PERMISSION` | Display over other apps (Draw over apps permission) |
 | `alias writesettings = android.settings.MANAGE_WRITE_SETTINGS` | `android.settings.MANAGE_WRITE_SETTINGS` | Allow apps to modify system settings |
@@ -358,9 +358,9 @@ Below is an extensive collection of tested shortcuts ready to be pasted into Min
 
 ---
 
-### Category H: Minimal OS Command Macros
+### Category H: Tilde Command Macros
 
-Minimal OS allows you to alias compound terminal commands and natural-language actions into simple single-word triggers.
+Tilde allows you to alias compound terminal commands and natural-language actions into simple single-word triggers.
 
 | Alias Command | Target Launcher Command | What It Does When Run |
 | :--- | :--- | :--- |
@@ -388,10 +388,10 @@ Minimal OS allows you to alias compound terminal commands and natural-language a
 ### 1. OEM Settings Variations
 While Android's `android.settings.*` intents are standard across AOSP, some vendor skins (such as Samsung One UI, Xiaomi HyperOS/MIUI, or Vivo OriginOS) may redirect certain secondary sub-settings or restrict them:
 - **Universal Intents**: `WIFI_SETTINGS`, `BLUETOOTH_SETTINGS`, `AIRPLANE_MODE_SETTINGS`, `DISPLAY_SETTINGS`, `SOUND_SETTINGS`, `APPLICATION_SETTINGS`, `APPLICATION_DEVELOPMENT_SETTINGS`, and `DATE_SETTINGS` function reliably on virtually all devices.
-- If a manufacturer-specific intent fails, Minimal OS will safely catch the exception and display a non-blocking toast: `Settings action failed: <reason>`.
+- If a manufacturer-specific intent fails, Tilde will safely catch the exception and display a non-blocking toast: `Settings action failed: <reason>`.
 
 ### 2. URL Encodings with Special Characters
-When defining URL templates, always enclose parameters in `{query}`. Minimal OS handles URL encoding (e.g., spaces converting to `%20` or `+`) automatically so complex search strings do not break your browser intent.
+When defining URL templates, always enclose parameters in `{query}`. Tilde handles URL encoding (e.g., spaces converting to `%20` or `+`) automatically so complex search strings do not break your browser intent.
 
 ### 3. Space Separation in Command Line
 When creating an alias from the command bar, ensure there are spaces around the equals sign:
@@ -403,4 +403,4 @@ Running `alias <name> = <new_target>` with an existing name will instantly overw
 
 ---
 
-*Minimal OS Launcher — Fast, Intentional, Local.*
+*Tilde Launcher — Fast, Intentional, Local.*
