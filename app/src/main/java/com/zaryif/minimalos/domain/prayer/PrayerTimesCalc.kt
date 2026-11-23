@@ -65,21 +65,28 @@ object PrayerTimesCalc {
         )
     }
 
-    /** The next prayer after [now]: today's, or tomorrow's fajr once isha has started. */
+    /** How long a prayer shows as "now" after it starts, before the line moves on. */
+    const val NOW_FOR_MS = 15 * 60_000L
+
+    /**
+     * The prayer to show: one that started in the last [NOW_FOR_MS] ("now"),
+     * otherwise the next one, which after isha is tomorrow's fajr.
+     */
     fun next(lat: Double, lon: Double, now: Long, zone: ZoneId, method: PrayerMethod, school: AsrSchool): PrayerSlot {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         return pickNext(day(lat, lon, today, method, school), day(lat, lon, today.plusDays(1), method, school), now)
     }
 
     internal fun pickNext(today: List<PrayerSlot>, tomorrow: List<PrayerSlot>, now: Long): PrayerSlot =
-        today.firstOrNull { it.at > now } ?: tomorrow.first()
+        today.firstOrNull { it.at > now - NOW_FOR_MS } ?: tomorrow.first()
 
     /** "asr 14:05 · in 1h 20m", "maghrib 16:02 · in 35m", "isha 18:10 · now". */
     fun label(slot: PrayerSlot, now: Long, zone: ZoneId): String {
         val time = Instant.ofEpochMilli(slot.at).atZone(zone).format(DateTimeFormatter.ofPattern("HH:mm"))
-        val mins = ((slot.at - now) / 60_000L).toInt()
+        // Round up, like the clock: 14:08 with asr at 14:09 is "in 1m", not "now".
+        val mins = ((slot.at - now + 59_999L) / 60_000L).toInt()
         val until = when {
-            mins < 1 -> "now"
+            mins <= 0 -> "now"
             mins < 60 -> "in ${mins}m"
             mins % 60 == 0 -> "in ${mins / 60}h"
             else -> "in ${mins / 60}h ${mins % 60}m"
