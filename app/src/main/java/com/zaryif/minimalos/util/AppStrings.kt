@@ -2,7 +2,7 @@ package com.zaryif.minimalos.util
 
 /**
  * ═════════════════════════════════════════════════════════════════════════════
- *  CENTRALIZED COPY & STRING REGISTRY FOR MINIMAL OS
+ *  CENTRALIZED COPY & STRING REGISTRY FOR TILDE LAUNCHER
  * ═════════════════════════════════════════════════════════════════════════════
  *  Change ANY text displayed in the app directly from this single file.
  *  Titles, subtitles, buttons, tab labels, search hints, settings sections,
@@ -13,7 +13,7 @@ package com.zaryif.minimalos.util
 object AppStrings {
 
     // ── 1. App Identity & Top Bar ───────────────────────────────────────────
-    var appName = "Minimal OS"
+    var appName = "Tilde Launcher"
     var homeTopBrand = "minimal"
 
     // ── 2. Hub Screen (Notifications & Alerts Stream) ───────────────────────
@@ -77,7 +77,7 @@ object AppStrings {
     var quickNoteAiSummarize = "AI Summarize"
     var quickNotePlaceholder = "Type note here · press enter or pin to status bar…"
     var quickNoteSheetPlaceholder = "What's on your mind? Jot anything here…\n\nWhatever you write stays persistently pinned to your status bar so you never forget."
-    var quickNoteAiPromptPrefix = "Please summarize, organize, and extract key action items from this quick note from Minimal OS:\n\n"
+    var quickNoteAiPromptPrefix = "Please summarize, organize, and extract key action items from this quick note from Tilde Launcher:\n\n"
 
     // ── 4. Minimal Memo Sheet (Tasks, Notes & Pinned Note) ──────────────────
     var memoTitle = "Memo"
@@ -151,7 +151,7 @@ object AppStrings {
 
     // Section 6: About
     var settingsSecAbout = "ABOUT & INFORMATION"
-    var settingsAboutLauncherTitle = "Minimal OS Launcher"
+    var settingsAboutLauncherTitle = "Tilde Launcher"
     var settingsAboutLauncherSubtitle = "Tap for architecture & details"
     var settingsCommandGuideTitle = "Command Reference & Guide"
     var settingsCommandGuideSubtitle = "Browse all 16 command symbols, custom aliases, and natural syntax"
@@ -164,7 +164,7 @@ object AppStrings {
     var settingsResetOnboardingTitle = "Reset Onboarding Experience"
     var settingsResetOnboardingSubtitle = "Clear completed state and restart the 5-step walkthrough"
     var settingsGithubTitle = "Source Code"
-    var settingsGithubSubtitle = "github.com/MDelar/Minimal_os_custom"
+    var settingsGithubSubtitle = "github.com/MDelar/tilde-launcher"
     var settingsReplayWizardTitle = "Replay Setup Wizard"
 
     // ── 7. Widgets Deck Screen & Home Widgets ───────────────────────────────

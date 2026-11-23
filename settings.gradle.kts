@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MinimalOS"
+rootProject.name = "TildeLauncher"
 include(":app")

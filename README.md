@@ -1,8 +1,10 @@
-# Minimal OS Custom
+# Tilde Launcher
 
-My personal fork of [Minimal OS](https://github.com/zaryif/Minimal_os), a text-first Android launcher built around a command bar. I've tuned it for the **Unihertz Titan 2 Elite** and other phones with a physical keyboard.
+`~` is home in a terminal, and this is your home screen.
 
-## What's different in this fork
+Tilde is a text-first Android launcher built around a command bar, tuned for the **Unihertz Titan 2 Elite** and other phones with a physical keyboard. It started as a fork of [Minimal OS](https://github.com/zaryif/Minimal_os) by MD. Zarif Azfar.
+
+## What Tilde adds
 
 ### Look
 - **Omarchy themes:** 18 extra dark themes (Tokyo Night, Nord, Lumon, Gruvbox and more) under Settings › Theme
@@ -41,7 +43,7 @@ My personal fork of [Minimal OS](https://github.com/zaryif/Minimal_os), a text-f
 
 Every added feature can be switched off in Settings.
 
-Everything else comes from the original project, which I merge in when it's updated.
+Everything else comes from Minimal OS, and I merge in its updates.
 
 ## Commands
 
@@ -81,4 +83,4 @@ Android 8.0 or newer. Kotlin and Jetpack Compose.
 
 Based on [Minimal OS](https://github.com/zaryif/Minimal_os) by MD. Zarif Azfar. Theme colours are from [Omarchy](https://github.com/omacom/omarchy). Both are MIT-licensed. Weather data is from [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Prayer times are calculated with [Adhan](https://github.com/batoulapps/adhan-java) (MIT). See [THIRD_PARTY.md](THIRD_PARTY.md).
 
-This fork is MIT-licensed too. See [LICENSE](LICENSE).
+Tilde Launcher is MIT-licensed too. See [LICENSE](LICENSE).

@@ -245,7 +245,7 @@ class NotificationHistoryRepository(context: Context) {
 
         val sb = StringBuilder()
         sb.appendLine("==================================================")
-        sb.appendLine("MINIMAL OS · NOTIFICATION ARCHIVE LOG")
+        sb.appendLine("TILDE LAUNCHER · NOTIFICATION ARCHIVE LOG")
         sb.appendLine("Exported: $exportTimestamp")
         sb.appendLine("Total Entries: ${items.size}")
         sb.appendLine("==================================================")

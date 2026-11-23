@@ -2,7 +2,7 @@
 
 ## Minimal OS
 
-This project is a fork of [Minimal OS](https://github.com/zaryif/Minimal_os)
+Tilde Launcher is a fork of [Minimal OS](https://github.com/zaryif/Minimal_os)
 by MD. Zarif Azfar, released under the MIT licence. The original copyright
 notice is kept in [LICENSE](LICENSE).
 
@@ -49,4 +49,4 @@ Prayer times are calculated on the phone with
 [adhan-java](https://github.com/batoulapps/adhan-java) by Batoul Apps,
 licensed under the MIT License.
 
-This project is not affiliated with Minimal OS, Omarchy, Omalauncher or Open-Meteo.
+Tilde Launcher is not affiliated with Minimal OS, Minimal Company, Omarchy, Omalauncher or Open-Meteo.

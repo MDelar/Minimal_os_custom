@@ -160,7 +160,7 @@ fun SettingsScreen(
     val drawerNotifiedFirst by userPreferences.drawerNotifiedFirst.collectAsState(initial = false)
 
     // Backup & restore
-    fun backupFileName() = "minimal-os-backup-" + SimpleDateFormat("yyyy-MM-dd", Locale.UK).format(Date()) + ".json"
+    fun backupFileName() = "tilde-backup-" + SimpleDateFormat("yyyy-MM-dd", Locale.UK).format(Date()) + ".json"
     var pendingRestore by remember { mutableStateOf<com.zaryif.minimalos.util.SettingsBackup.Parsed?>(null) }
     val saveBackupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
         if (uri != null) scope.launch {
@@ -181,7 +181,7 @@ fun SettingsScreen(
                         ?.let { com.zaryif.minimalos.util.SettingsBackup.parse(it) }
                 } catch (_: Exception) { null }
             }
-            if (parsed == null) android.widget.Toast.makeText(context, "That isn't a Minimal OS backup", android.widget.Toast.LENGTH_SHORT).show()
+            if (parsed == null) android.widget.Toast.makeText(context, "That isn't a Tilde Launcher backup", android.widget.Toast.LENGTH_SHORT).show()
             else pendingRestore = parsed
         }
     }
@@ -1619,7 +1619,7 @@ fun SettingsScreen(
                     SettingsItemRow(
                         icon = Icons.Default.Home,
                         title = AppStrings.settingsLauncherTitle,
-                        subtitle = "Configure Minimal OS as your primary home",
+                        subtitle = "Set Tilde Launcher as your home screen",
                         trailingContent = {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -1999,7 +1999,7 @@ fun SettingsScreen(
                             )
                         },
                         onClick = {
-                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/MDelar/Minimal_os_custom"))
+                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/MDelar/tilde-launcher"))
                             context.startActivity(browserIntent)
                         }
                     )
@@ -2023,7 +2023,7 @@ fun SettingsScreen(
                             }
                         },
                         onClick = {
-                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/MDelar/Minimal_os_custom/blob/main/LICENSE"))
+                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/MDelar/tilde-launcher/blob/main/LICENSE"))
                             context.startActivity(browserIntent)
                         }
                     )
@@ -2345,7 +2345,7 @@ fun SettingsScreen(
         }
 
         // =========================================================
-        // ABOUT MINIMAL OS & SYSTEM ARCHITECTURE MODAL
+        // ABOUT TILDE LAUNCHER & SYSTEM ARCHITECTURE MODAL
         // =========================================================
         if (showHeaderDialog) {
             HomeHeaderDialog(
@@ -2380,7 +2380,7 @@ fun SettingsScreen(
                         ) {
                             Image(
                                 painter = painterResource(id = R.drawable.app_logo),
-                                contentDescription = "Minimal OS Logo",
+                                contentDescription = "Tilde Launcher logo",
                                 modifier = Modifier
                                     .size(44.dp)
                                     .clip(RoundedCornerShape(12.dp))
@@ -2391,7 +2391,7 @@ fun SettingsScreen(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "MINIMAL OS",
+                                    text = "TILDE LAUNCHER",
                                     fontFamily = AppleSanFranciscoFontFamily,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
@@ -2595,7 +2595,7 @@ fun SettingsScreen(
                                 .background(MinimalDarkCardBg)
                                 .border(1.dp, MinimalDarkGray, RoundedCornerShape(10.dp))
                                 .clickable {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/MDelar/Minimal_os_custom"))
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/MDelar/tilde-launcher"))
                                     context.startActivity(intent)
                                 }
                                 .padding(vertical = 11.dp),

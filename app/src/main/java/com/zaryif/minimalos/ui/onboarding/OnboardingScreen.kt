@@ -229,7 +229,7 @@ private fun StepWelcome(onNext: () -> Unit) {
             Spacer(modifier = Modifier.height(10.dp))
             Image(
                 painter = painterResource(id = R.drawable.app_logo),
-                contentDescription = "Minimal OS Logo",
+                contentDescription = "Tilde Launcher logo",
                 modifier = Modifier
                     .size(62.dp)
                     .clip(RoundedCornerShape(16.dp))
@@ -237,7 +237,7 @@ private fun StepWelcome(onNext: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "welcome to\nminimal os",
+                text = "welcome to\ntilde",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = MinimalWhite,
@@ -324,12 +324,12 @@ private fun StepCommandBarAnimated(
                 icon = Icons.Default.CheckCircle
             ),
             DemoCommand(
-                triggerText = "! Life is always good when you have Minimal OS as your default",
+                triggerText = "! Life is always good when you have Tilde as your default",
                 symbol = "!",
                 pillLabel = "! Note",
                 categoryBadge = "! QUICK NOTE",
                 resultTitle = "Note Saved to Scratchpad",
-                resultSubtitle = "\"Life is always good when you have Minimal OS as your default\"",
+                resultSubtitle = "\"Life is always good when you have Tilde as your default\"",
                 icon = Icons.Default.EditNote
             ),
             DemoCommand(
@@ -1280,7 +1280,7 @@ private fun StepSetupWizard(
 
         Column {
             MinimalButton(
-                text = "LAUNCH MINIMAL OS ->",
+                text = "LAUNCH TILDE ->",
                 onClick = { applyAndLaunch() },
                 style = ButtonStyle.PRIMARY
             )

@@ -266,7 +266,7 @@ object WeatherRepository {
         return try {
             connection.connectTimeout = 10_000
             connection.readTimeout = 10_000
-            connection.setRequestProperty("User-Agent", "MinimalOS-Custom")
+            connection.setRequestProperty("User-Agent", "TildeLauncher")
             if (connection.responseCode !in 200..299) error("HTTP ${connection.responseCode}")
             connection.inputStream.bufferedReader().use { it.readText() }
         } finally {
