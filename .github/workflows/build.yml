@@ -39,6 +39,10 @@ jobs:
             -d .github/signing/signing.tgz.gpg | tar -xzf -
           test -f keystore.properties && test -f minimalos-release.jks
 
+      # e.g. MinimalOS-v2.1.0 for a tag, MinimalOS-main for main, MinimalOS-32-merge for a PR
+      - name: Name the APKs
+        run: echo "APK_NAME=MinimalOS-${GITHUB_REF_NAME//\//-}" >> "$GITHUB_ENV"
+
       - name: Unit tests
         run: ./gradlew :app:testReleaseUnitTest --stacktrace
 
@@ -46,18 +50,26 @@ jobs:
         run: |
           ./gradlew :app:assembleRelease -PprayerTimes=false --stacktrace
           mkdir -p out
-          cp app/build/outputs/apk/release/app-release*.apk "out/MinimalOS-${GITHUB_REF_NAME//\//-}.apk"
+          cp app/build/outputs/apk/release/app-release*.apk "out/$APK_NAME.apk"
 
       - name: Build personal APK (with prayer times)
         run: |
           ./gradlew :app:assembleRelease -PprayerTimes=true --stacktrace
-          cp app/build/outputs/apk/release/app-release*.apk "out/MinimalOS-${GITHUB_REF_NAME//\//-}-prayer.apk"
+          cp app/build/outputs/apk/release/app-release*.apk "out/$APK_NAME-prayer.apk"
 
-      - name: Upload APKs
+      # Each APK is its own download (not zipped), named after the file.
+      - name: Upload public APK
         uses: actions/upload-artifact@v7
         with:
-          name: MinimalOS-APKs
-          path: out/*.apk
+          path: out/${{ env.APK_NAME }}.apk
+          archive: false
+          retention-days: 30
+
+      - name: Upload personal APK
+        uses: actions/upload-artifact@v7
+        with:
+          path: out/${{ env.APK_NAME }}-prayer.apk
+          archive: false
           retention-days: 30
 
       # Tagging a version (e.g. v2.1.0) publishes the public APK as a GitHub Release.
@@ -65,5 +77,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v3
         with:
-          files: out/MinimalOS-${{ github.ref_name }}.apk
+          files: out/${{ env.APK_NAME }}.apk
           generate_release_notes: true
