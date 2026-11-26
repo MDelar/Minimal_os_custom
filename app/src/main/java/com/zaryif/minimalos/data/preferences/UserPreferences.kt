@@ -62,6 +62,7 @@ class UserPreferences(private val context: Context) {
         private val CUSTOM_WALLPAPER_URI = stringPreferencesKey("custom_wallpaper_uri")
         private val HOME_HEADER_TEXT = stringPreferencesKey("home_header_text")
         private val UNLOCK_ANIMATION = booleanPreferencesKey("unlock_animation")
+        private val NAV_HINTS = booleanPreferencesKey("nav_hints")
         private val DRAWER_NOTIFIED_FIRST = booleanPreferencesKey("drawer_notified_first")
         private val PRAYER_TIMES_ENABLED = booleanPreferencesKey("prayer_times_enabled")
         private val PRAYER_METHOD = stringPreferencesKey("prayer_method")
@@ -353,6 +354,14 @@ class UserPreferences(private val context: Context) {
 
     suspend fun setUnlockAnimation(enabled: Boolean) {
         context.dataStore.edit { prefs -> prefs[UNLOCK_ANIMATION] = enabled }
+    }
+
+    /** The "<- hub  ↑ apps  widgets ->" row above the command bar. On by default. */
+    val navHints: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[NAV_HINTS] ?: true }
+
+    suspend fun setNavHints(enabled: Boolean) {
+        context.dataStore.edit { prefs -> prefs[NAV_HINTS] = enabled }
     }
 
     val homeHeaderText: Flow<String> = context.dataStore.data

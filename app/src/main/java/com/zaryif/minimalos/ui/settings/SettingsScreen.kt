@@ -67,6 +67,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Save
@@ -144,6 +145,7 @@ fun SettingsScreen(
     val assistantPackage by userPreferences.assistantPackage.collectAsState(initial = null)
     val showCommandFeedback by userPreferences.showCommandFeedback.collectAsState(initial = false)
     val unlockAnimationPref by userPreferences.unlockAnimation.collectAsState(initial = true)
+    val navHintsPref by userPreferences.navHints.collectAsState(initial = true)
     val showTerminalBufferIcon by userPreferences.showTerminalBufferIcon.collectAsState(initial = true)
     val showCommandHelperIcon by userPreferences.showCommandHelperIcon.collectAsState(initial = true)
     val customWallpaperUri by userPreferences.customWallpaperUri.collectAsState(initial = null)
@@ -662,6 +664,28 @@ fun SettingsScreen(
                                 )
                             )
                         }
+                    )
+
+                    SettingsInsetDivider()
+
+                    // Item 1d: the hub / apps / widgets hints above the command bar
+                    SettingsItemRow(
+                        icon = Icons.Default.SwapHoriz,
+                        title = "Navigation Hints",
+                        subtitle = if (navHintsPref) "Shows hub, apps and widgets above the command bar" else "Hidden; swipes still work",
+                        trailingContent = {
+                            Switch(
+                                checked = navHintsPref,
+                                onCheckedChange = { scope.launch { userPreferences.setNavHints(it) } },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MinimalWhite,
+                                    checkedTrackColor = MinimalRed,
+                                    uncheckedThumbColor = MinimalGray,
+                                    uncheckedTrackColor = MinimalDarkCardBg
+                                )
+                            )
+                        },
+                        onClick = { scope.launch { userPreferences.setNavHints(!navHintsPref) } }
                     )
 
                     SettingsInsetDivider()
