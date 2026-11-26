@@ -142,6 +142,7 @@ fun HomeScreen(
     val favoriteAppPackages by userPreferences.favoriteApps.collectAsState(initial = emptySet())
     val homeHeaderText by userPreferences.homeHeaderText.collectAsState(initial = UserPreferences.DEFAULT_HOME_HEADER)
     val unlockAnimation by userPreferences.unlockAnimation.collectAsState(initial = true)
+    val navHints by userPreferences.navHints.collectAsState(initial = true)
     val prayerTimesEnabled by userPreferences.prayerTimesEnabled.collectAsState(initial = false)
     val prayerMethod by userPreferences.prayerMethod.collectAsState(initial = null)
     val prayerAsrSchool by userPreferences.prayerAsrSchool.collectAsState(initial = null)
@@ -764,7 +765,8 @@ fun HomeScreen(
                         }
                     }
             ) {
-                if (!isTyping) {
+                // Hidden from Settings › Appearance › Navigation Hints; the swipes still work.
+                if (!isTyping && navHints) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
